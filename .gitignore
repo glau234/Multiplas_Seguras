@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Ambientes virtuais e IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos de Debug e Testes Temporários
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.html
+*.txt
+scratch*.py
+debug*.py
+inspect*.py
+find*.py
+test_*.py
+date_bar_info.json
+detailed_table_cols.json
+sample_rows.json
+vip_sample_data.json
+all_days_scraped.json
+save_cached.py
+sync_vip_cache.py
+
+# Credenciais e Variáveis de Ambiente
+.env
