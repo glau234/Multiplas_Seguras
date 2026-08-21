@@ -3,7 +3,7 @@ from playwright.async_api import async_playwright
 import time
 import json
 
-async def scrape_packball(email, password):
+async def scrape_packball(email, password, num_days=7):
     matches = []
     
     async with async_playwright() as p:
@@ -37,15 +37,16 @@ async def scrape_packball(email, password):
             
             seen_match_keys = set()
             
-            # 3. Loop pelos 7 dias
-            for day in range(7):
+            # 3. Loop pelos dias configurados pelo usuário
+            total_dias = max(1, min(int(num_days), 14))
+            for day in range(total_dias):
                 current_date = await page.evaluate(r'''() => {
                     const el = document.querySelector('.arrow-nav .title-active');
                     return el ? el.innerText.trim() : null;
                 }''')
                 if not current_date:
                     current_date = f"Dia {day+1}"
-                print(f"Buscando {current_date} (Passo {day+1}/7)...")
+                print(f"Buscando {current_date} (Passo {day+1}/{total_dias})...")
                 
                 # Extrair jogos do dia atual com métricas VIP completas
                 day_matches = await page.evaluate(r'''() => {
@@ -186,14 +187,13 @@ async def scrape_packball(email, password):
 import concurrent.futures
 import os
 
-def fetch_packball_matches(username, password):
+def fetch_packball_matches(username, password, num_days=7):
     """
     Função wrapper síncrona que roda o scraper assíncrono em uma thread isolada.
-    Caso a conta atinja o limite diário de requisições do Packball (403 daily),
-    retorna a base de dados extraída mais recente garantindo continuidade da análise.
+    Recebe o número de dias desejado para a extração (1 a 14 dias).
     """
     def _run():
-        return asyncio.run(scrape_packball(username, password))
+        return asyncio.run(scrape_packball(username, password, num_days=num_days))
         
     res = []
     try:

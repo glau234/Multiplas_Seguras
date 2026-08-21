@@ -22,16 +22,18 @@ def render_packball_integration():
         username = st.text_input("Usuário / Email:", placeholder="seu_email@exemplo.com", value="glaucio.silveira@gmail.com")
         password = st.text_input("Senha:", type="password", value="Denise23")
         
+        num_dias = st.number_input("📅 Quantidade de Dias para Extração:", min_value=1, max_value=14, value=3, step=1, help="Escolha quantos dias futuros (a partir de hoje) você deseja varrer e extrair do Packball.")
+        
         st.markdown("#### 🎯 Filtros Estatísticos (Packball Nativo)")
         filtro_max_exg = st.slider("ExG Máximo da Partida (Packball):", min_value=1.50, max_value=4.50, value=3.20, step=0.1, help="Partidas com menor ExG favorecem o Handicap +3 e mercados Under.")
         filtro_max_diff = st.slider("Diferença Máxima de Odds (Equilíbrio):", min_value=0.50, max_value=3.50, value=2.50, step=0.1, help="Garante que as partidas sejam parelhas e equilibradas.")
         
-        if st.button("🚀 Iniciar Extração Oficial VIP (7 Dias)", use_container_width=True):
+        if st.button(f"🚀 Iniciar Extração Oficial VIP ({num_dias} Dias)", use_container_width=True):
             if not username or not password:
                 st.error("Por favor, insira o usuário e a senha do Packball.")
             else:
-                with st.spinner("Conectando à sua conta VIP do Packball e extraindo métricas oficiais..."):
-                    raw_matches = fetch_packball_matches(username, password)
+                with st.spinner(f"Conectando à sua conta VIP do Packball e extraindo métricas oficiais dos próximos {num_dias} dias..."):
+                    raw_matches = fetch_packball_matches(username, password, num_days=num_dias)
                     
                     if raw_matches and isinstance(raw_matches, dict) and "error" in raw_matches:
                         st.error(raw_matches.get("error", "Erro desconhecido ao extrair dados."))
