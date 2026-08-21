@@ -1,7 +1,7 @@
 import streamlit as st
 import time
 from utils.packball_scraper import fetch_packball_matches
-from utils.calculations import calculate_xg_and_defense
+from utils.calculations import calculate_xg_and_defense, calculate_team_corners
 
 def render_packball_integration():
     # Se houver um jogo selecionado para visualização completa em página dedicada
@@ -11,7 +11,7 @@ def render_packball_integration():
         return
 
     st.title("🌐 Integração Packball VIP - Estatísticas Oficiais")
-    st.markdown("Extração oficial dos próximos 7 dias do Packball para assinantes VIP. Dados nativos de **ExG (Expectativa de Gols)**, **Ambas Marcam (BTS %)**, **PPG**, **Probabilidade de Vitória**, **Escanteios (AVG & ExC)** e **Poder Defensivo**.")
+    st.markdown("Extração oficial dos próximos 7 dias do Packball para assinantes VIP. Dados nativos de **ExG (Gols)**, **ExC (Escanteios do Jogo e por Time)**, **Ambas Marcam (BTS %)**, **PPG**, **Probabilidade de Vitória** e **Poder Defensivo**.")
 
     st.markdown("---")
     
@@ -83,7 +83,10 @@ def render_packball_integration():
                     exg_oficial = match.get("exg_oficial", match.get("exg", 2.5))
                     escanteios_avg = match.get("escanteios_avg", match.get("corners", "N/A"))
                     escanteios_exc = match.get("escanteios_exc", "")
-                    exc_display = escanteios_exc if escanteios_exc else escanteios_avg
+                    
+                    # Calcular ExC do Jogo e por Time
+                    exc_base = escanteios_exc if escanteios_exc else escanteios_avg
+                    corners_calc = calculate_team_corners(exc_base, odd_casa, odd_visi)
                     
                     pais = match.get("pais", "")
                     liga = match.get("liga", "")
@@ -97,7 +100,7 @@ def render_packball_integration():
                         c_title, c_btn = st.columns([3, 1])
                         with c_title:
                             st.markdown(f"### {status_icon} {match['time_casa']} vs {match['time_visi']}")
-                            st.caption(f"📅 **{data_str}** | 🏆 **{liga}** ({pais}) | ⚽ **ExG:** {exg_oficial} | 🚩 **Cantos:** {escanteios_avg} (ExC: {exc_display})")
+                            st.caption(f"📅 **{data_str}** | 🏆 **{liga}** ({pais}) | ⚽ **ExG:** {exg_oficial} | 🚩 **ExC Jogo:** {corners_calc['exc_total']} (Casa: {corners_calc['exc_casa']} | Visi: {corners_calc['exc_visi']})")
                         with c_btn:
                             st.write("")
                             if st.button("🔍 Ver Análise Completa", key=f"btn_detalhe_{idx}_{match.get('id', idx)}", use_container_width=True):
@@ -152,7 +155,10 @@ def render_match_details_page(match):
     ppg = match.get("ppg", "N/A")
     escanteios_avg = match.get("escanteios_avg", match.get("corners", "N/A"))
     escanteios_exc = match.get("escanteios_exc", "")
-    exc_display = escanteios_exc if escanteios_exc else escanteios_avg
+    
+    # Cálculo das expectativas de escanteios (Jogo + Cada Equipe)
+    exc_base = escanteios_exc if escanteios_exc else escanteios_avg
+    corners_calc = calculate_team_corners(exc_base, odd_casa, odd_visi)
     
     pais = match.get("pais", "")
     liga = match.get("liga", "")
@@ -165,7 +171,6 @@ def render_match_details_page(match):
     cs_visi = match.get("clean_sheet_visi", 40.0)
     
     maior_odd_time = match['time_casa'] if odd_casa > odd_visi else match['time_visi']
-    underdog_odd = max(odd_casa, odd_visi)
     
     # Header Principal
     st.markdown(f"# ⚔️ {match['time_casa']} vs {match['time_visi']}")
@@ -186,7 +191,33 @@ def render_match_details_page(match):
         
     st.markdown("---")
     
-    # Bloco 2: Estatísticas Oficiais do Packball VIP
+    # Bloco 2: Expectativa e Distribuição de Escanteios (ExC)
+    st.subheader("🚩 Análise Detalhada de Escanteios (ExC & AVG)")
+    col_e1, col_e2, col_e3, col_e4 = st.columns(4)
+    
+    with col_e1:
+        st.metric("🎯 ExC Total do Jogo", f"{corners_calc['exc_total']} cantos", help="Expectativa total de escanteios projetada para a partida.")
+        st.caption(f"Média Histórica (AVG): **{escanteios_avg}**")
+        
+    with col_e2:
+        st.metric(f"🏠 ExC {match['time_casa']}", f"{corners_calc['exc_casa']} cantos", help=f"Expectativa de escanteios para o {match['time_casa']}.")
+        st.caption(f"Domínio Ofensivo: **{corners_calc['share_casa_pct']}%**")
+        
+    with col_e3:
+        st.metric(f"✈️ ExC {match['time_visi']}", f"{corners_calc['exc_visi']} cantos", help=f"Expectativa de escanteios para o {match['time_visi']}.")
+        st.caption(f"Domínio Ofensivo: **{corners_calc['share_visi_pct']}%**")
+        
+    with col_e4:
+        st.metric("📊 Média das Equipes (AVG)", f"{escanteios_avg} cantos", help="Média combinada de escanteios das equipes por jogo.")
+        st.caption("Packball Nativo")
+        
+    # Barra de distribuição de escanteios
+    st.caption(f"Proporção de Escanteios Esperados: **{match['time_casa']} ({corners_calc['exc_casa']})** vs **{match['time_visi']} ({corners_calc['exc_visi']})**")
+    st.progress(corners_calc['share_casa_pct'] / 100.0)
+    
+    st.markdown("---")
+    
+    # Bloco 3: Estatísticas Oficiais de Gols do Packball VIP
     st.subheader("📈 Estatísticas Nativas e Oficiais do Packball VIP")
     
     col_s1, col_s2, col_s3, col_s4 = st.columns(4)
@@ -199,16 +230,16 @@ def render_match_details_page(match):
         st.caption(f"Prob. Over 2.5 Gols: **{over25 if over25 else 'N/A'}**")
         
     with col_s3:
-        st.metric("🚩 Cantos Médios (AVG)", f"{escanteios_avg} cantos", help="Média combinada de escanteios das equipes por partida.")
-        st.caption(f"Expectativa de Cantos (ExC): **{exc_display}**")
+        st.metric("🏆 Prob. Vitória (% Win)", f"{win_prob}", help="Probabilidade estimada de vitória Casa vs Visitante.")
+        st.caption("Projeção Packball")
         
     with col_s4:
-        st.metric("🏆 Prob. Vitória (% Win)", f"{win_prob}", help="Probabilidade estimada de vitória Casa vs Visitante.")
-        st.caption(f"Pontos Por Jogo (PPG): **{ppg}**")
+        st.metric("📈 Pontos Por Jogo (PPG)", f"{ppg}", help="Média de pontos por jogo no campeonato.")
+        st.caption(f"Horário: **{horario}**")
 
     st.markdown("---")
     
-    # Bloco 3: Análise Tática e Poder Defensivo
+    # Bloco 4: Análise Tática e Poder Defensivo
     st.subheader("🛡️ Diagnóstico de Solidez Defensiva & Clean Sheet")
     col_d1, col_d2 = st.columns(2)
     
@@ -226,7 +257,7 @@ def render_match_details_page(match):
         
     st.markdown("---")
     
-    # Bloco 4: Ações
+    # Bloco 5: Ações
     st.subheader("⚡ Ações para este Jogo")
     btn_col1, btn_col2 = st.columns(2)
     
@@ -249,4 +280,5 @@ def render_match_details_page(match):
         if st.button("⬅️ Voltar para Todos os Confrontos", key="btn_back_bottom", use_container_width=True):
             st.session_state["selected_packball_match"] = None
             st.rerun()
+
 

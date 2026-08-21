@@ -819,7 +819,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_4_Brighton & Hove Albion",
+    "id": "pack_2_Brighton & Hove Albion",
     "time_casa": "Brighton & Hove Albion",
     "time_visi": "Aston Villa",
     "pais": "ENG",
@@ -840,7 +840,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_4_Getafe",
+    "id": "pack_2_Getafe",
     "time_casa": "Getafe",
     "time_visi": "Racing Santander",
     "pais": "ESP",
@@ -861,7 +861,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_4_Venezia",
+    "id": "pack_2_Venezia",
     "time_casa": "Venezia",
     "time_visi": "Lecce",
     "pais": "ITA",
@@ -882,7 +882,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_4_Vitória",
+    "id": "pack_2_Vitória",
     "time_casa": "Vitória",
     "time_visi": "Bahia",
     "pais": "BRA",
@@ -903,7 +903,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_4_Chapecoense",
+    "id": "pack_2_Chapecoense",
     "time_casa": "Chapecoense",
     "time_visi": "São Paulo",
     "pais": "BRA",
@@ -924,7 +924,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_4_Coritiba",
+    "id": "pack_2_Coritiba",
     "time_casa": "Coritiba",
     "time_visi": "Corinthians",
     "pais": "BRA",
@@ -945,7 +945,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_4_Santa Clara",
+    "id": "pack_2_Santa Clara",
     "time_casa": "Santa Clara",
     "time_visi": "Famalicão",
     "pais": "POR",
@@ -966,7 +966,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_4_Liaoning Tieren FC",
+    "id": "pack_2_Liaoning Tieren FC",
     "time_casa": "Liaoning Tieren FC",
     "time_visi": "Henan Songshan Longmen",
     "pais": "CHN",
@@ -987,7 +987,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_4_Chongqing Tonglianglong FC",
+    "id": "pack_2_Chongqing Tonglianglong FC",
     "time_casa": "Chongqing Tonglianglong FC",
     "time_visi": "Dalian Yingbo",
     "pais": "CHN",
@@ -1008,7 +1008,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_4_Lommel SK",
+    "id": "pack_2_Lommel SK",
     "time_casa": "Lommel SK",
     "time_visi": "Westerlo",
     "pais": "BEL",
@@ -1029,7 +1029,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_4_Sarmiento",
+    "id": "pack_2_Sarmiento",
     "time_casa": "Sarmiento",
     "time_visi": "Estudiantes",
     "pais": "ARG",
@@ -1050,7 +1050,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_4_Barracas Central",
+    "id": "pack_2_Barracas Central",
     "time_casa": "Barracas Central",
     "time_visi": "Platense",
     "pais": "ARG",
@@ -1071,7 +1071,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Málaga",
+    "id": "pack_3_Málaga",
     "time_casa": "Málaga",
     "time_visi": "Deportivo A Coruña",
     "pais": "ESP",
@@ -1092,7 +1092,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Bologna",
+    "id": "pack_3_Bologna",
     "time_casa": "Bologna",
     "time_visi": "Lazio",
     "pais": "ITA",
@@ -1113,7 +1113,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Botafogo",
+    "id": "pack_3_Botafogo",
     "time_casa": "Botafogo",
     "time_visi": "Athletico PR",
     "pais": "BRA",
@@ -1134,7 +1134,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Botev Vratsa",
+    "id": "pack_3_Botev Vratsa",
     "time_casa": "Botev Vratsa",
     "time_visi": "Botev Plovdiv",
     "pais": "BUL",
@@ -1155,7 +1155,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Lokomotiv Plovdiv",
+    "id": "pack_3_Lokomotiv Plovdiv",
     "time_casa": "Lokomotiv Plovdiv",
     "time_visi": "Arda",
     "pais": "BUL",
@@ -1176,7 +1176,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Lanús",
+    "id": "pack_3_Lanús",
     "time_casa": "Lanús",
     "time_visi": "Argentinos Juniors",
     "pais": "ARG",
@@ -1197,7 +1197,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Talleres Córdoba",
+    "id": "pack_3_Talleres Córdoba",
     "time_casa": "Talleres Córdoba",
     "time_visi": "Rosario Central",
     "pais": "ARG",
@@ -1218,7 +1218,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Athletic Club",
+    "id": "pack_3_Athletic Club",
     "time_casa": "Athletic Club",
     "time_visi": "Novorizontino",
     "pais": "BRA",
@@ -1239,7 +1239,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Vihren",
+    "id": "pack_3_Vihren",
     "time_casa": "Vihren",
     "time_visi": "Fratria",
     "pais": "BUL",
@@ -1260,7 +1260,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Libertad",
+    "id": "pack_3_Libertad",
     "time_casa": "Libertad",
     "time_visi": "Macará",
     "pais": "ECU",
@@ -1281,7 +1281,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Celta Fortuna",
+    "id": "pack_3_Celta Fortuna",
     "time_casa": "Celta Fortuna",
     "time_visi": "FC Andorra",
     "pais": "ESP",
@@ -1302,7 +1302,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Granada",
+    "id": "pack_3_Granada",
     "time_casa": "Granada",
     "time_visi": "Mallorca",
     "pais": "ESP",
@@ -1323,7 +1323,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Ellas Syros",
+    "id": "pack_3_Ellas Syros",
     "time_casa": "Ellas Syros",
     "time_visi": "Marko",
     "pais": "GRE",
@@ -1344,7 +1344,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Farense",
+    "id": "pack_3_Farense",
     "time_casa": "Farense",
     "time_visi": "Felgueiras 1932",
     "pais": "POR",
@@ -1365,7 +1365,7 @@
     "mercado": "Handicap"
   },
   {
-    "id": "pack_5_Feirense",
+    "id": "pack_3_Feirense",
     "time_casa": "Feirense",
     "time_visi": "Porto II",
     "pais": "POR",
@@ -1383,258 +1383,6 @@
     "escanteios_avg": "10.1",
     "escanteios_exc": "10",
     "data": "24/8 Mon",
-    "mercado": "Handicap"
-  },
-  {
-    "id": "pack_6_Valencia",
-    "time_casa": "Valencia",
-    "time_visi": "Real Betis",
-    "pais": "ESP",
-    "liga": "La Liga",
-    "horario": "16:00",
-    "odd_casa": 2.65,
-    "odd_empate": 3.1,
-    "odd_visi": 2.64,
-    "win_prob": "57% - 63%",
-    "ppg": "1.7 - 1.9",
-    "gols_avg": "2.9",
-    "exg": 2.9,
-    "over25": "65%",
-    "bts": "60%",
-    "escanteios_avg": "7.9",
-    "escanteios_exc": "",
-    "data": "25/8 Tue",
-    "mercado": "Handicap"
-  },
-  {
-    "id": "pack_6_Atlético GO",
-    "time_casa": "Atlético GO",
-    "time_visi": "Botafogo SP",
-    "pais": "BRA",
-    "liga": "Serie B",
-    "horario": "19:30",
-    "odd_casa": 2.06,
-    "odd_empate": 3.1,
-    "odd_visi": 3.74,
-    "win_prob": "53% - 60%",
-    "ppg": "1.6 - 1.8",
-    "gols_avg": "2.1",
-    "exg": 2,
-    "over25": "30%",
-    "bts": "40%",
-    "escanteios_avg": "12.3",
-    "escanteios_exc": "12",
-    "data": "25/8 Tue",
-    "mercado": "Handicap"
-  },
-  {
-    "id": "pack_6_Cardiff City",
-    "time_casa": "Cardiff City",
-    "time_visi": "Norwich City",
-    "pais": "ENG",
-    "liga": "Carabao Cup",
-    "horario": "15:00",
-    "odd_casa": 2.55,
-    "odd_empate": 3.1,
-    "odd_visi": 2.61,
-    "win_prob": "63% - 50%",
-    "ppg": "1.9 - 1.5",
-    "gols_avg": "3.6",
-    "exg": 3,
-    "over25": "65%",
-    "bts": "60%",
-    "escanteios_avg": "10.2",
-    "escanteios_exc": "10",
-    "data": "25/8 Tue",
-    "mercado": "Handicap"
-  },
-  {
-    "id": "pack_6_Southampton",
-    "time_casa": "Southampton",
-    "time_visi": "West Ham United",
-    "pais": "ENG",
-    "liga": "Carabao Cup",
-    "horario": "15:45",
-    "odd_casa": 2.69,
-    "odd_empate": 3.1,
-    "odd_visi": 2.43,
-    "win_prob": "50% - 43%",
-    "ppg": "1.5 - 1.3",
-    "gols_avg": "2.6",
-    "exg": 2,
-    "over25": "55%",
-    "bts": "55%",
-    "escanteios_avg": "10.7",
-    "escanteios_exc": "10",
-    "data": "25/8 Tue",
-    "mercado": "Handicap"
-  },
-  {
-    "id": "pack_6_Cambridge United",
-    "time_casa": "Cambridge United",
-    "time_visi": "Millwall",
-    "pais": "ENG",
-    "liga": "Carabao Cup",
-    "horario": "15:45",
-    "odd_casa": 3.44,
-    "odd_empate": 3.1,
-    "odd_visi": 2.1,
-    "win_prob": "70% - 40%",
-    "ppg": "2.1 - 1.2",
-    "gols_avg": "2",
-    "exg": 2,
-    "over25": "40%",
-    "bts": "45%",
-    "escanteios_avg": "10.4",
-    "escanteios_exc": "10",
-    "data": "25/8 Tue",
-    "mercado": "Handicap"
-  },
-  {
-    "id": "pack_6_Stevenage",
-    "time_casa": "Stevenage",
-    "time_visi": "Reading",
-    "pais": "ENG",
-    "liga": "Carabao Cup",
-    "horario": "15:45",
-    "odd_casa": 2.28,
-    "odd_empate": 3.1,
-    "odd_visi": 3.15,
-    "win_prob": "50% - 57%",
-    "ppg": "1.5 - 1.7",
-    "gols_avg": "2.2",
-    "exg": 2,
-    "over25": "30%",
-    "bts": "35%",
-    "escanteios_avg": "10",
-    "escanteios_exc": "10",
-    "data": "25/8 Tue",
-    "mercado": "Handicap"
-  },
-  {
-    "id": "pack_6_Walsall",
-    "time_casa": "Walsall",
-    "time_visi": "Leyton Orient",
-    "pais": "ENG",
-    "liga": "Carabao Cup",
-    "horario": "15:45",
-    "odd_casa": 3.09,
-    "odd_empate": 3.1,
-    "odd_visi": 2.16,
-    "win_prob": "37% - 37%",
-    "ppg": "1.1 - 1.1",
-    "gols_avg": "2.8",
-    "exg": 2,
-    "over25": "55%",
-    "bts": "50%",
-    "escanteios_avg": "9.7",
-    "escanteios_exc": "10",
-    "data": "25/8 Tue",
-    "mercado": "Handicap"
-  },
-  {
-    "id": "pack_6_Fleetwood Town",
-    "time_casa": "Fleetwood Town",
-    "time_visi": "Shrewsbury Town",
-    "pais": "ENG",
-    "liga": "Carabao Cup",
-    "horario": "15:45",
-    "odd_casa": 2.04,
-    "odd_empate": 3.1,
-    "odd_visi": 3.54,
-    "win_prob": "70% - 30%",
-    "ppg": "2.1 - 0.9",
-    "gols_avg": "2",
-    "exg": 2,
-    "over25": "25%",
-    "bts": "40%",
-    "escanteios_avg": "9.6",
-    "escanteios_exc": "10",
-    "data": "25/8 Tue",
-    "mercado": "Handicap"
-  },
-  {
-    "id": "pack_6_Blackburn Rovers",
-    "time_casa": "Blackburn Rovers",
-    "time_visi": "Sheffield United",
-    "pais": "ENG",
-    "liga": "Carabao Cup",
-    "horario": "15:45",
-    "odd_casa": 2.7,
-    "odd_empate": 3.1,
-    "odd_visi": 2.52,
-    "win_prob": "43% - 70%",
-    "ppg": "1.3 - 2.1",
-    "gols_avg": "2.4",
-    "exg": 2,
-    "over25": "55%",
-    "bts": "50%",
-    "escanteios_avg": "10.1",
-    "escanteios_exc": "10",
-    "data": "25/8 Tue",
-    "mercado": "Handicap"
-  },
-  {
-    "id": "pack_6_Stoke City",
-    "time_casa": "Stoke City",
-    "time_visi": "Hull City",
-    "pais": "ENG",
-    "liga": "Carabao Cup",
-    "horario": "15:45",
-    "odd_casa": 3,
-    "odd_empate": 3.1,
-    "odd_visi": 2.37,
-    "win_prob": "37% - 60%",
-    "ppg": "1.1 - 1.8",
-    "gols_avg": "2",
-    "exg": 2,
-    "over25": "35%",
-    "bts": "45%",
-    "escanteios_avg": "8.4",
-    "escanteios_exc": "9",
-    "data": "25/8 Tue",
-    "mercado": "Handicap"
-  },
-  {
-    "id": "pack_6_Nottingham Forest",
-    "time_casa": "Nottingham Forest",
-    "time_visi": "Leeds United",
-    "pais": "ENG",
-    "liga": "Carabao Cup",
-    "horario": "16:00",
-    "odd_casa": 2.19,
-    "odd_empate": 3.1,
-    "odd_visi": 3.17,
-    "win_prob": "57% - 67%",
-    "ppg": "1.7 - 2",
-    "gols_avg": "2.9",
-    "exg": 2,
-    "over25": "50%",
-    "bts": "55%",
-    "escanteios_avg": "8.4",
-    "escanteios_exc": "10",
-    "data": "25/8 Tue",
-    "mercado": "Handicap"
-  },
-  {
-    "id": "pack_6_2 de Mayo",
-    "time_casa": "2 de Mayo",
-    "time_visi": "Guaraní",
-    "pais": "PAR",
-    "liga": "Division 1",
-    "horario": "18:30",
-    "odd_casa": 2.77,
-    "odd_empate": 3.1,
-    "odd_visi": 2.53,
-    "win_prob": "77% - 37%",
-    "ppg": "2.3 - 1.1",
-    "gols_avg": "2",
-    "exg": 2,
-    "over25": "45%",
-    "bts": "50%",
-    "escanteios_avg": "7.6",
-    "escanteios_exc": "8",
-    "data": "25/8 Tue",
     "mercado": "Handicap"
   }
 ]

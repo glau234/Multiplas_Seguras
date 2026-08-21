@@ -142,3 +142,40 @@ def calculate_xg_and_defense(odd_casa: float, odd_empate: float, odd_visi: float
         "seguranca_label": seguranca_label,
         "seguranca_status": seguranca_status
     }
+
+def calculate_team_corners(escanteios_total: Any, odd_casa: float, odd_visi: float) -> Dict[str, float]:
+    """
+    Calcula a distribuição esperada de escanteios (ExC) para o time da Casa e Visitante
+    com base no total de escanteios projetados e no volume ofensivo implícito das odds.
+    """
+    try:
+        total = float(escanteios_total)
+        if total <= 0:
+            total = 9.5
+    except (ValueError, TypeError):
+        total = 9.5
+        
+    odd_c = max(float(odd_casa), 1.05)
+    odd_v = max(float(odd_visi), 1.05)
+    
+    # Probabilidade implícita de domínio ofensivo
+    p_c = 1.0 / odd_c
+    p_v = 1.0 / odd_v
+    soma = p_c + p_v
+    
+    # Peso de controle de jogo (mandante x visitante)
+    share_casa = (p_c / soma) * 0.40 + 0.30
+    share_casa = max(0.35, min(0.70, share_casa))
+    share_visi = 1.0 - share_casa
+    
+    exc_casa = round(total * share_casa, 1)
+    exc_visi = round(total * share_visi, 1)
+    
+    return {
+        "exc_total": round(total, 1),
+        "exc_casa": exc_casa,
+        "exc_visi": exc_visi,
+        "share_casa_pct": round(share_casa * 100, 1),
+        "share_visi_pct": round(share_visi * 100, 1)
+    }
+
