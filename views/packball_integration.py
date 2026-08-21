@@ -4,8 +4,14 @@ from utils.packball_scraper import fetch_packball_matches
 from utils.calculations import calculate_xg_and_defense
 
 def render_packball_integration():
+    # Se houver um jogo selecionado para visualização completa em página dedicada
+    selected_match = st.session_state.get("selected_packball_match", None)
+    if selected_match:
+        render_match_details_page(selected_match)
+        return
+
     st.title("🌐 Integração Packball VIP - Estatísticas Oficiais")
-    st.markdown("Extração oficial dos próximos 7 dias do Packball para assinantes VIP. Dados nativos de **ExG (Expectativa de Gols)**, **Ambas Marcam (BTS %)**, **PPG**, **Probabilidade de Vitória** e **Poder Defensivo**.")
+    st.markdown("Extração oficial dos próximos 7 dias do Packball para assinantes VIP. Dados nativos de **ExG (Expectativa de Gols)**, **Ambas Marcam (BTS %)**, **PPG**, **Probabilidade de Vitória**, **Escanteios (AVG & ExC)** e **Poder Defensivo**.")
 
     st.markdown("---")
     
@@ -36,7 +42,6 @@ def render_packball_integration():
                             stats = calculate_xg_and_defense(m.get("odd_casa", 2.0), m.get("odd_empate", 3.10), m.get("odd_visi", 2.0))
                             enriched_match = dict(m)
                             enriched_match.update(stats)
-                            # Se o Packball trouxe ExG nativo, damos prioridade a ele
                             if "exg" in m and m["exg"]:
                                 enriched_match["exg_oficial"] = m["exg"]
                             else:
@@ -49,7 +54,7 @@ def render_packball_integration():
                         st.warning("Nenhum jogo encontrado que atenda aos critérios.")
 
     with col2:
-        st.subheader("📊 Painel de Confrontos & Métricas VIP")
+        st.subheader("📊 Painel de Confrontos VIP")
         
         if "packball_matches" in st.session_state:
             matches = st.session_state["packball_matches"]
@@ -76,54 +81,28 @@ def render_packball_integration():
                     odd_empate = match.get("odd_empate", 3.10)
                     odd_visi = match.get("odd_visi", 2.0)
                     exg_oficial = match.get("exg_oficial", match.get("exg", 2.5))
-                    gols_avg = match.get("gols_avg", "")
-                    win_prob = match.get("win_prob", "N/A")
-                    ppg = match.get("ppg", "N/A")
-                    bts = match.get("bts", "N/A")
                     escanteios_avg = match.get("escanteios_avg", match.get("corners", "N/A"))
                     escanteios_exc = match.get("escanteios_exc", "")
+                    exc_display = escanteios_exc if escanteios_exc else escanteios_avg
+                    
                     pais = match.get("pais", "")
                     liga = match.get("liga", "")
-                    horario = match.get("horario", "")
                     data_str = match.get("data", "Hoje")
-                    
-                    def_casa = match.get("poder_def_casa", 65)
-                    def_visi = match.get("poder_def_visi", 65)
                     
                     diff_odd = abs(odd_casa - odd_visi)
                     is_match_aprovado = (diff_odd <= filtro_max_diff) and (float(exg_oficial) <= filtro_max_exg)
-                    
                     status_icon = "🟢" if is_match_aprovado else "⚪"
-                    maior_odd_time = match['time_casa'] if odd_casa > odd_visi else match['time_visi']
                     
-                    exc_display = escanteios_exc if escanteios_exc else escanteios_avg
-                    header_title = f"{status_icon} [{data_str}] {match['time_casa']} vs {match['time_visi']} | ExG: {exg_oficial} | Cantos: {escanteios_avg} (ExC: {exc_display}) | {liga} ({pais})"
-                    
-                    with st.expander(header_title):
-                        c1, c2, c3 = st.columns(3)
-                        c1.metric(f"Odd {match['time_casa']}", f"{odd_casa:.2f}")
-                        c2.metric("Odd Empate", f"{odd_empate:.2f}")
-                        c3.metric(f"Odd {match['time_visi']}", f"{odd_visi:.2f}")
-                        
-                        st.markdown("---")
-                        st.markdown("#### 📈 Estatísticas Nativas do Packball")
-                        
-                        col_v1, col_v2, col_v3, col_v4, col_v5 = st.columns(5)
-                        col_v1.metric("ExG (Packball)", f"{exg_oficial} gols", help="Expectativa de gols calculada pelo Packball.")
-                        col_v2.metric("Ambas Marcam (BTS)", f"{bts}", help="Probabilidade de Ambas as Equipes Marcarem.")
-                        col_v3.metric("Prob. Vitória (%)", f"{win_prob}", help="Chance percentual de vitória Casa vs Visitante.")
-                        col_v4.metric("Cantos Médios (AVG)", f"{escanteios_avg}", help="Média de escanteios das equipes no Packball.")
-                        col_v5.metric("Expect. Cantos (ExC)", f"{exc_display}", help="Expectativa oficial de escanteios da partida.")
-                        
-                        st.markdown("#### 🛡️ Poder Defensivo das Equipes")
-                        col_d1, col_d2 = st.columns(2)
-                        col_d1.metric(f"Solidez Defensiva ({match['time_casa']})", f"{def_casa}%", help="Capacidade da defesa de conter o ataque adversário.")
-                        col_d2.metric(f"Solidez Defensiva ({match['time_visi']})", f"{def_visi}%", help="Capacidade da defesa de conter o ataque adversário.")
-                        
-                        if ppg and ppg != "N/A":
-                            st.caption(f"🏆 **PPG (Pontos por Jogo):** {match['time_casa']} ({ppg.split('-')[0].strip() if '-' in ppg else ppg}) vs {match['time_visi']} ({ppg.split('-')[1].strip() if '-' in ppg else ''}) | Horário: {horario} | Média Gols (AVG): {gols_avg}")
-                        
-                        st.info(f"💡 **Recomendação Múltiplas Seguras:** Entrada em **Handicap Europeu +3 ({maior_odd_time})**.")
+                    with st.container(border=True):
+                        c_title, c_btn = st.columns([3, 1])
+                        with c_title:
+                            st.markdown(f"### {status_icon} {match['time_casa']} vs {match['time_visi']}")
+                            st.caption(f"📅 **{data_str}** | 🏆 **{liga}** ({pais}) | ⚽ **ExG:** {exg_oficial} | 🚩 **Cantos:** {escanteios_avg} (ExC: {exc_display})")
+                        with c_btn:
+                            st.write("")
+                            if st.button("🔍 Ver Análise Completa", key=f"btn_detalhe_{idx}_{match.get('id', idx)}", use_container_width=True):
+                                st.session_state["selected_packball_match"] = match
+                                st.rerun()
 
                 if len(aprovados) > 0:
                     st.markdown("---")
@@ -144,3 +123,130 @@ def render_packball_integration():
                         st.success(f"✅ {len(aprovados)} partidas enviadas para o Simulador com sucesso!")
         else:
             st.info("Preencha suas credenciais VIP e inicie a extração para visualizar todos os dados nativos do Packball.")
+
+
+def render_match_details_page(match):
+    """
+    Renderiza uma página dedicada e ampla com todos os dados e diagnósticos detalhados da partida.
+    """
+    col_nav1, col_nav2 = st.columns([1, 4])
+    with col_nav1:
+        if st.button("⬅️ Voltar para Lista de Jogos", use_container_width=True):
+            st.session_state["selected_packball_match"] = None
+            st.rerun()
+            
+    with col_nav2:
+        st.caption("Visão Expandida & Diagnóstico Detalhado do Packball VIP")
+        
+    st.markdown("---")
+    
+    # Dados da partida
+    odd_casa = match.get("odd_casa", 2.0)
+    odd_empate = match.get("odd_empate", 3.10)
+    odd_visi = match.get("odd_visi", 2.0)
+    exg_oficial = match.get("exg_oficial", match.get("exg", 2.5))
+    gols_avg = match.get("gols_avg", "N/A")
+    over25 = match.get("over25", "N/A")
+    bts = match.get("bts", "N/A")
+    win_prob = match.get("win_prob", "N/A")
+    ppg = match.get("ppg", "N/A")
+    escanteios_avg = match.get("escanteios_avg", match.get("corners", "N/A"))
+    escanteios_exc = match.get("escanteios_exc", "")
+    exc_display = escanteios_exc if escanteios_exc else escanteios_avg
+    
+    pais = match.get("pais", "")
+    liga = match.get("liga", "")
+    horario = match.get("horario", "")
+    data_str = match.get("data", "Hoje")
+    
+    def_casa = match.get("poder_def_casa", 65)
+    def_visi = match.get("poder_def_visi", 65)
+    cs_casa = match.get("clean_sheet_casa", 40.0)
+    cs_visi = match.get("clean_sheet_visi", 40.0)
+    
+    maior_odd_time = match['time_casa'] if odd_casa > odd_visi else match['time_visi']
+    underdog_odd = max(odd_casa, odd_visi)
+    
+    # Header Principal
+    st.markdown(f"# ⚔️ {match['time_casa']} vs {match['time_visi']}")
+    st.markdown(f"📅 **Data:** {data_str} &nbsp;|&nbsp; ⏰ **Horário:** {horario} &nbsp;|&nbsp; 🏆 **Liga:** {liga} ({pais}) &nbsp;|&nbsp; ⭐ **Critério FAV:** *Sem favorito ou leve favoritismo*")
+    
+    st.markdown("---")
+    
+    # Bloco 1: Cotações e Mercado Recomendado
+    st.subheader("💰 Cotações 1X2 & Mercado Múltiplas Seguras")
+    col_c1, col_c2, col_c3, col_c4 = st.columns([1, 1, 1, 1.5])
+    
+    col_c1.metric(f"Vitória {match['time_casa']}", f"{odd_casa:.2f}", help="Odd para vitória do time mandante.")
+    col_c2.metric("Empate", f"{odd_empate:.2f}", help="Odd para empate.")
+    col_c3.metric(f"Vitória {match['time_visi']}", f"{odd_visi:.2f}", help="Odd para vitória do time visitante.")
+    
+    with col_c4:
+        st.success(f"🛡️ **Entrada Sugerida:**\n**Handicap Europeu +3 ({maior_odd_time})**\nOdd Estimada: ~1.12 - 1.18")
+        
+    st.markdown("---")
+    
+    # Bloco 2: Estatísticas Oficiais do Packball VIP
+    st.subheader("📈 Estatísticas Nativas e Oficiais do Packball VIP")
+    
+    col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+    with col_s1:
+        st.metric("🎯 Expectativa de Gols (ExG)", f"{exg_oficial} gols", help="Média esperada de gols calculada pelos modelos matemáticos do Packball.")
+        st.caption(f"Média Histórica de Gols (AVG): **{gols_avg}**")
+        
+    with col_s2:
+        st.metric("⚽ Ambas Marcam (BTS %)", f"{bts}", help="Probabilidade percentual de ambas as equipes marcarem gols.")
+        st.caption(f"Prob. Over 2.5 Gols: **{over25 if over25 else 'N/A'}**")
+        
+    with col_s3:
+        st.metric("🚩 Cantos Médios (AVG)", f"{escanteios_avg} cantos", help="Média combinada de escanteios das equipes por partida.")
+        st.caption(f"Expectativa de Cantos (ExC): **{exc_display}**")
+        
+    with col_s4:
+        st.metric("🏆 Prob. Vitória (% Win)", f"{win_prob}", help="Probabilidade estimada de vitória Casa vs Visitante.")
+        st.caption(f"Pontos Por Jogo (PPG): **{ppg}**")
+
+    st.markdown("---")
+    
+    # Bloco 3: Análise Tática e Poder Defensivo
+    st.subheader("🛡️ Diagnóstico de Solidez Defensiva & Clean Sheet")
+    col_d1, col_d2 = st.columns(2)
+    
+    with col_d1:
+        st.markdown(f"#### Defesa {match['time_casa']}")
+        st.progress(min(def_casa / 100.0, 1.0))
+        st.write(f"🛡️ **Solidez Defensiva:** **{def_casa}%**")
+        st.write(f"🧤 **Probabilidade de Não Sofrer Gol (Clean Sheet):** **{cs_casa}%**")
+        
+    with col_d2:
+        st.markdown(f"#### Defesa {match['time_visi']}")
+        st.progress(min(def_visi / 100.0, 1.0))
+        st.write(f"🛡️ **Solidez Defensiva:** **{def_visi}%**")
+        st.write(f"🧤 **Probabilidade de Não Sofrer Gol (Clean Sheet):** **{cs_visi}%**")
+        
+    st.markdown("---")
+    
+    # Bloco 4: Ações
+    st.subheader("⚡ Ações para este Jogo")
+    btn_col1, btn_col2 = st.columns(2)
+    
+    with btn_col1:
+        if st.button("➕ Adicionar Jogo ao Simulador de Bilhetes", key="btn_add_single", use_container_width=True):
+            if "packball_approved_matches" not in st.session_state:
+                st.session_state["packball_approved_matches"] = []
+                
+            st.session_state["packball_approved_matches"].append({
+                "id": match.get("id", str(time.time())),
+                "jogo": f"{match['time_casa']} vs {match['time_visi']}",
+                "mercado": f"Handicap Europeu +3 ({maior_odd_time})",
+                "odd": 1.15,
+                "status": "Pendente",
+                "data": match.get("data", "Hoje")
+            })
+            st.success(f"✅ Partida **{match['time_casa']} vs {match['time_visi']}** adicionada ao Simulador de Bilhetes!")
+            
+    with btn_col2:
+        if st.button("⬅️ Voltar para Todos os Confrontos", key="btn_back_bottom", use_container_width=True):
+            st.session_state["selected_packball_match"] = None
+            st.rerun()
+
