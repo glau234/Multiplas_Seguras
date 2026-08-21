@@ -26,130 +26,263 @@ st.set_page_config(
 ensure_data_file()
 
 # ----------------------------------------------------
-# ESTILIZAÇÃO CUSTOMIZADA (CSS DARK MODE ESPORTIVO)
+# ESTILIZAÇÃO CUSTOMIZADA (CLEAN MODERN LIGHT AESTHETIC)
 # ----------------------------------------------------
 st.markdown("""
 <style>
-    /* Estilização Geral da Aplicação - Slate Dark Elegante de Alto Contraste */
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+    /* Fundo Geral - Soft Porcelain / Clean Modern */
     .stApp {
-        background-color: #0F172A !important;
-        color: #F8FAFC !important;
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        background-color: #F4F6F8 !important;
+        color: #111827 !important;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif !important;
     }
 
-    /* Cabeçalho do Streamlit (Remover Barra Branca no Topo) */
+    /* Cabeçalho do Streamlit Integrado e Limpo */
     header[data-testid="stHeader"], .stAppHeader, header {
-        background-color: #0F172A !important;
-        background: #0F172A !important;
-        color: #F8FAFC !important;
+        background-color: #F4F6F8 !important;
+        background: #F4F6F8 !important;
+        color: #111827 !important;
     }
     
     div[data-testid="stToolbar"], div[data-testid="stDecoration"] {
-        background-color: #0F172A !important;
-        color: #F8FAFC !important;
+        background-color: #F4F6F8 !important;
+        color: #111827 !important;
     }
 
-    /* Rótulos e Rótulos de Formulários (Labels) - Alto Contraste */
-    label, label p, .stWidgetLabel, div[data-testid="stWidgetLabel"] p, .stMarkdown p, span {
-        color: #F8FAFC !important;
-        font-size: 0.95rem !important;
-        font-weight: 600 !important;
+    /* Sidebar Estilo Clean Clay / Neumorphic */
+    section[data-testid="stSidebar"] {
+        background-color: #FAFAFB !important;
+        border-right: 1px solid #E5E7EB !important;
+        box-shadow: 2px 0 12px rgba(0, 0, 0, 0.02) !important;
     }
 
-    /* Rótulos e Texto Principal - Alto Contraste */
-    .stMarkdown, .stMarkdown p, label, .stWidgetLabel p, span {
-        color: #F8FAFC !important;
+    section[data-testid="stSidebar"] *, section[data-testid="stSidebar"] p, section[data-testid="stSidebar"] span {
+        color: #374151 !important;
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
     }
 
-    /* Entradas de Texto, Números e Selectbox */
-    input, select, textarea, div[data-baseweb="input"] input {
-        background-color: #334155 !important;
-        color: #FFFFFF !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
-        border: 1px solid #475569 !important;
+    section[data-testid="stSidebar"] h1, section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3 {
+        color: #111827 !important;
+        font-weight: 800 !important;
     }
 
-    div[data-baseweb="select"] > div, div[data-baseweb="select"] span, div[data-baseweb="select"] div {
-        background-color: #334155 !important;
+    /* Navegação por Radio na Sidebar (Pílulas Modernas) */
+    div[data-testid="stSidebar"] div[role="radiogroup"] label {
+        background: #FFFFFF !important;
+        border: 1px solid #E5E7EB !important;
+        border-radius: 14px !important;
+        padding: 10px 14px !important;
+        margin-bottom: 8px !important;
+        transition: all 0.2s ease !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02) !important;
+    }
+
+    div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+        border-color: #CBD5E1 !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.04) !important;
+    }
+
+    div[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"], 
+    div[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
+        background: #111827 !important;
+        border-color: #111827 !important;
+    }
+
+    div[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] p,
+    div[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p,
+    div[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] span,
+    div[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) span {
         color: #FFFFFF !important;
         font-weight: 700 !important;
-        border: 1px solid #475569 !important;
-        border-radius: 8px !important;
     }
 
-    /* Menu Suspenso do Selectbox (Dropdown Listbox) */
-    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"], li[role="option"] {
-        background-color: #1E293B !important;
-        color: #FFFFFF !important;
+    /* Títulos & Tipografia Principal */
+    h1, h2, h3, h4, h5, h6 {
+        color: #111827 !important;
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.02em !important;
+    }
+
+    p, span, label, div[data-testid="stMarkdownContainer"] p {
+        color: #374151 !important;
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+    }
+
+    /* Containers e Cards com Bordas Arredondadas e Sombra Suave */
+    div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stVerticalBlockBorderWrapper"]),
+    div[data-testid="stVerticalBlockBorderWrapper"] > div {
+        background: #FFFFFF !important;
+        border: 1px solid #E5E7EB !important;
+        border-radius: 20px !important;
+        padding: 20px !important;
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.03), 0 2px 6px -1px rgba(0, 0, 0, 0.02) !important;
+    }
+
+    /* Metric Cards Modernos */
+    div[data-testid="stMetric"] {
+        background: #FFFFFF !important;
+        border: 1px solid #E5E7EB !important;
+        border-radius: 18px !important;
+        padding: 16px 18px !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03) !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+    }
+
+    div[data-testid="stMetric"]:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    div[data-testid="stMetricValue"], div[data-testid="stMetricValue"] * {
+        font-size: 1.85rem !important;
+        font-weight: 800 !important;
+        color: #111827 !important;
+        letter-spacing: -0.03em !important;
+    }
+
+    div[data-testid="stMetricLabel"] p {
+        font-size: 0.85rem !important;
         font-weight: 600 !important;
+        color: #6B7280 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.03em !important;
+    }
+
+    /* Inputs, Number Inputs, Text Area */
+    input, select, textarea, div[data-baseweb="input"] input, div[data-baseweb="input"] {
+        background-color: #FFFFFF !important;
+        color: #111827 !important;
+        font-weight: 600 !important;
+        border-radius: 14px !important;
+        border: 1px solid #E5E7EB !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+    }
+
+    div[data-baseweb="input"] input:focus {
+        border-color: #2563EB !important;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+    }
+
+    /* Selectboxes & Dropdowns */
+    div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important;
+        color: #111827 !important;
+        font-weight: 600 !important;
+        border: 1px solid #E5E7EB !important;
+        border-radius: 14px !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+    }
+
+    div[data-baseweb="popover"], div[data-baseweb="menu"], ul[role="listbox"], li[role="option"] {
+        background-color: #FFFFFF !important;
+        color: #111827 !important;
+        font-weight: 600 !important;
+        border-radius: 12px !important;
     }
 
     li[role="option"]:hover, li[role="option"][aria-selected="true"] {
-        background-color: #334155 !important;
-        color: #00E676 !important;
+        background-color: #EFF6FF !important;
+        color: #2563EB !important;
     }
 
-    /* Metric Cards - Destaque Visual */
-    div[data-testid="stMetric"] {
-        background-color: #0F172A !important;
-        border: 1px solid #334155 !important;
-        border-radius: 10px !important;
-        padding: 10px !important;
-    }
-
-    div[data-testid="stMetricValue"] {
-        font-size: 1.9rem !important;
-        font-weight: 800 !important;
-        color: #00E676 !important;
-    }
-    
-    div[data-testid="stMetricLabel"] p {
-        font-size: 0.9rem !important;
-        font-weight: 600 !important;
-        color: #CBD5E1 !important;
-    }
-
-    /* Botões Principais - Neon Verde */
+    /* Botões Modernos (Pills Minimalistas Escuras de Alto Contraste) */
     .stButton > button {
-        background: linear-gradient(135deg, #00C853 0%, #00E676 100%) !important;
-        color: #000000 !important;
-        font-weight: 800 !important;
-        border: none !important;
-        border-radius: 8px !important;
-        padding: 12px 28px !important;
-        transition: all 0.25s ease !important;
-        box-shadow: 0 4px 14px rgba(0, 230, 118, 0.3) !important;
-    }
-    
-    .stButton > button:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(0, 230, 118, 0.5) !important;
-    }
-
-    /* Sidebar Estilizada de Alto Contraste */
-    section[data-testid="stSidebar"] {
-        background-color: #1E293B !important;
-        border-right: 1px solid #334155 !important;
-    }
-
-    section[data-testid="stSidebar"] *, section[data-testid="stSidebar"] p {
-        color: #F8FAFC !important;
-    }
-
-    /* Radios e Checkboxes */
-    div[data-testid="stMarkdownContainer"] p {
-        color: #F8FAFC !important;
-    }
-
-    /* Títulos */
-    h1, h2, h3 {
+        background: #111827 !important;
         color: #FFFFFF !important;
-        font-weight: 800 !important;
-        letter-spacing: -0.5px !important;
+        font-weight: 700 !important;
+        font-size: 0.95rem !important;
+        border: none !important;
+        border-radius: 14px !important;
+        padding: 12px 24px !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        box-shadow: 0 4px 12px rgba(17, 24, 39, 0.12) !important;
+    }
+
+    .stButton > button:hover {
+        background: #1F2937 !important;
+        color: #FFFFFF !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 20px rgba(17, 24, 39, 0.2) !important;
+    }
+
+    .stButton > button:active {
+        transform: translateY(0) !important;
+    }
+
+    /* Barras de Progresso Suaves */
+    div[data-testid="stProgress"] > div > div > div {
+        background: linear-gradient(90deg, #2563EB 0%, #3B82F6 100%) !important;
+        border-radius: 999px !important;
+    }
+
+    div[data-testid="stProgress"] > div > div {
+        background-color: #E5E7EB !important;
+        border-radius: 999px !important;
+    }
+
+    /* Alertas & Banners de Sucesso/Informação (Design Clean) */
+    div[data-testid="stAlert"] {
+        border-radius: 16px !important;
+        border: 1px solid #E5E7EB !important;
+        background: #FFFFFF !important;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03) !important;
+    }
+
+    div[data-testid="stAlert"] * {
+        color: #1F2937 !important;
+    }
+
+    /* Expanders Clean Modern */
+    div[data-testid="stExpander"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid #E5E7EB !important;
+        border-radius: 18px !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02) !important;
+        overflow: hidden !important;
+        margin-bottom: 12px !important;
+    }
+
+    div[data-testid="stExpander"] summary {
+        font-weight: 700 !important;
+        color: #111827 !important;
+        padding: 14px 18px !important;
+    }
+
+    div[data-testid="stExpander"] summary:hover {
+        color: #2563EB !important;
+    }
+
+    /* Tabelas e DataFrames Clean */
+    div[data-testid="stDataFrame"], div[data-testid="stTable"] {
+        background-color: #FFFFFF !important;
+        border-radius: 16px !important;
+        border: 1px solid #E5E7EB !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02) !important;
+        overflow: hidden !important;
+    }
+
+    /* Sliders */
+    div[data-testid="stSlider"] div[data-baseweb="slider"] {
+        color: #2563EB !important;
+    }
+
+    div[data-testid="stSlider"] div[data-baseweb="slider"] div[role="slider"] {
+        background-color: #2563EB !important;
+        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4) !important;
+    }
+
+    /* Separadores */
+    hr {
+        border-color: #E5E7EB !important;
+        margin: 1.5rem 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
+
 
 # ----------------------------------------------------
 # BARRA LATERAL DE NAVEGAÇÃO E RECURSOS
