@@ -58,45 +58,43 @@ st.markdown("""
         box-shadow: 2px 0 12px rgba(0, 0, 0, 0.02) !important;
     }
 
-    section[data-testid="stSidebar"] *, section[data-testid="stSidebar"] p, section[data-testid="stSidebar"] span {
+    section[data-testid="stSidebar"] h1, 
+    section[data-testid="stSidebar"] h2, 
+    section[data-testid="stSidebar"] h3 {
+        color: #111827 !important;
+        font-weight: 800 !important;
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+    }
+
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] label {
         color: #374151 !important;
         font-family: 'Plus Jakarta Sans', sans-serif !important;
     }
 
-    section[data-testid="stSidebar"] h1, section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3 {
-        color: #111827 !important;
-        font-weight: 800 !important;
-    }
-
-    /* Navegação por Radio na Sidebar (Pílulas Modernas) */
-    div[data-testid="stSidebar"] div[role="radiogroup"] label {
+    /* Navegação por Radio na Sidebar */
+    div[data-testid="stSidebar"] div[role="radiogroup"] > label {
         background: #FFFFFF !important;
         border: 1px solid #E5E7EB !important;
-        border-radius: 14px !important;
-        padding: 10px 14px !important;
-        margin-bottom: 8px !important;
+        border-radius: 12px !important;
+        padding: 8px 12px !important;
+        margin-bottom: 6px !important;
         transition: all 0.2s ease !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.02) !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02) !important;
+        display: flex !important;
+        align-items: center !important;
     }
 
-    div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
-        border-color: #CBD5E1 !important;
+    div[data-testid="stSidebar"] div[role="radiogroup"] > label:hover {
+        border-color: #93C5FD !important;
+        background: #F8FAFC !important;
         transform: translateY(-1px) !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.04) !important;
     }
 
-    div[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"], 
-    div[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
-        background: #111827 !important;
-        border-color: #111827 !important;
-    }
-
-    div[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] p,
-    div[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p,
-    div[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] span,
-    div[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) span {
-        color: #FFFFFF !important;
-        font-weight: 700 !important;
+    div[data-testid="stSidebar"] div[role="radiogroup"] > label p {
+        color: #1F2937 !important;
+        font-weight: 600 !important;
+        font-size: 0.92rem !important;
     }
 
     /* Títulos & Tipografia Principal */
@@ -107,7 +105,7 @@ st.markdown("""
         letter-spacing: -0.02em !important;
     }
 
-    p, span, label, div[data-testid="stMarkdownContainer"] p {
+    p, label {
         color: #374151 !important;
         font-family: 'Plus Jakarta Sans', sans-serif !important;
     }
@@ -137,7 +135,8 @@ st.markdown("""
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06) !important;
     }
 
-    div[data-testid="stMetricValue"], div[data-testid="stMetricValue"] * {
+    div[data-testid="stMetricValue"], 
+    div[data-testid="stMetricValue"] * {
         font-size: 1.85rem !important;
         font-weight: 800 !important;
         color: #111827 !important;
@@ -189,24 +188,34 @@ st.markdown("""
         color: #2563EB !important;
     }
 
-    /* Botões Modernos (Pills Minimalistas Escuras de Alto Contraste) */
-    .stButton > button {
+    /* BOTÕES MODERNOS - 100% LEGÍVEIS COM TEXTO BRANCO PURO */
+    .stButton > button,
+    div[data-testid="stButton"] > button {
         background: #111827 !important;
-        color: #FFFFFF !important;
-        font-weight: 700 !important;
-        font-size: 0.95rem !important;
-        border: none !important;
+        border: 1px solid #111827 !important;
         border-radius: 14px !important;
         padding: 12px 24px !important;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        box-shadow: 0 4px 12px rgba(17, 24, 39, 0.12) !important;
+        box-shadow: 0 4px 12px rgba(17, 24, 39, 0.15) !important;
     }
 
-    .stButton > button:hover {
-        background: #1F2937 !important;
+    .stButton > button *,
+    .stButton > button p,
+    .stButton > button span,
+    .stButton > button div,
+    div[data-testid="stButton"] > button * {
         color: #FFFFFF !important;
+        font-weight: 700 !important;
+        font-size: 0.95rem !important;
+        letter-spacing: 0.01em !important;
+    }
+
+    .stButton > button:hover,
+    div[data-testid="stButton"] > button:hover {
+        background: #1F2937 !important;
+        border-color: #1F2937 !important;
         transform: translateY(-2px) !important;
-        box-shadow: 0 8px 20px rgba(17, 24, 39, 0.2) !important;
+        box-shadow: 0 8px 20px rgba(17, 24, 39, 0.25) !important;
     }
 
     .stButton > button:active {
@@ -232,27 +241,33 @@ st.markdown("""
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03) !important;
     }
 
-    div[data-testid="stAlert"] * {
+    div[data-testid="stAlert"] p {
         color: #1F2937 !important;
+        font-weight: 600 !important;
     }
 
-    /* Expanders Clean Modern */
+    /* EXPANDERS CLEAN MODERN (SEM SOBREPOSIÇÃO DE ÍCONE) */
     div[data-testid="stExpander"] {
         background-color: #FFFFFF !important;
         border: 1px solid #E5E7EB !important;
-        border-radius: 18px !important;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02) !important;
-        overflow: hidden !important;
+        border-radius: 16px !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
         margin-bottom: 12px !important;
     }
 
     div[data-testid="stExpander"] summary {
-        font-weight: 700 !important;
-        color: #111827 !important;
-        padding: 14px 18px !important;
+        padding: 10px 14px !important;
+        border-radius: 16px !important;
     }
 
-    div[data-testid="stExpander"] summary:hover {
+    div[data-testid="stExpander"] summary p {
+        color: #111827 !important;
+        font-weight: 700 !important;
+        font-size: 0.92rem !important;
+        margin: 0 !important;
+    }
+
+    div[data-testid="stExpander"] summary:hover p {
         color: #2563EB !important;
     }
 
