@@ -21,7 +21,7 @@ def render_login_view():
             st.markdown("### 🔐 Autenticação de Usuário")
             st.markdown("Insira seu e-mail e senha cadastrados para acessar a plataforma:")
 
-            email_input = st.text_input("📧 E-mail de Acesso:", placeholder="exemplo@gmail.com", key="login_email")
+            email_input = st.text_input("📧 E-mail de Acesso:", value="glaucio.silveira@gmail.com", placeholder="exemplo@gmail.com", key="login_email")
             senha_input = st.text_input("🔑 Senha:", type="password", placeholder="Digite sua senha", key="login_pass")
 
             col_btn, col_extra = st.columns([1.5, 1])
@@ -40,8 +40,8 @@ def render_login_view():
 
             st.markdown("---")
             st.info(
-                "👑 **Acesso Inicial do Administrador:**\n\n"
-                "• **E-mail:** `glaucio.silva@gmail.com`\n\n"
+                "👑 **Acesso do Administrador Master:**\n\n"
+                "• **E-mail:** `glaucio.silveira@gmail.com`\n\n"
                 "• **Senha Padrão:** `admin123456`\n\n"
-                "*(Você pode alterar sua senha e incluir outros usuários a qualquer momento no menu de Admin)*"
+                "*(Você pode alterar sua senha e cadastrar/excluir outros usuários a qualquer momento no menu de Admin)*"
             )

@@ -1,0 +1,18 @@
+[
+  {
+    "name": "Glaucio Silveira (Admin)",
+    "email": "glaucio.silveira@gmail.com",
+    "password_hash": "978abee822b3abbfe8c872ffab225ce8eeb7162301d91bc8b3fcf946128ec6a0",
+    "role": "admin",
+    "active": true,
+    "created_at": "25/08/2026 10:18"
+  },
+  {
+    "name": "Glaucio Silva (Admin)",
+    "email": "glaucio.silva@gmail.com",
+    "password_hash": "978abee822b3abbfe8c872ffab225ce8eeb7162301d91bc8b3fcf946128ec6a0",
+    "role": "admin",
+    "active": true,
+    "created_at": "25/08/2026 10:18"
+  }
+]

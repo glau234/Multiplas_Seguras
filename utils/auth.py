@@ -15,16 +15,26 @@ def ensure_users_file():
     """Garante que o arquivo data/users.json exista com o Administrador inicial."""
     os.makedirs(os.path.dirname(USERS_FILE), exist_ok=True)
     if not os.path.exists(USERS_FILE):
-        default_admin = {
-            "name": "Glaucio Silva (Admin)",
-            "email": "glaucio.silva@gmail.com",
-            "password_hash": hash_password("admin123456"),
-            "role": "admin", # 'admin' ou 'user'
-            "active": True,
-            "created_at": time.strftime("%d/%m/%Y %H:%M")
-        }
+        default_admins = [
+            {
+                "name": "Glaucio Silveira (Admin)",
+                "email": "glaucio.silveira@gmail.com",
+                "password_hash": hash_password("admin123456"),
+                "role": "admin",
+                "active": True,
+                "created_at": time.strftime("%d/%m/%Y %H:%M")
+            },
+            {
+                "name": "Glaucio Silva (Admin)",
+                "email": "glaucio.silva@gmail.com",
+                "password_hash": hash_password("admin123456"),
+                "role": "admin",
+                "active": True,
+                "created_at": time.strftime("%d/%m/%Y %H:%M")
+            }
+        ]
         with open(USERS_FILE, "w", encoding="utf-8") as f:
-            json.dump([default_admin], f, ensure_ascii=False, indent=2)
+            json.dump(default_admins, f, ensure_ascii=False, indent=2)
 
 def load_users() -> List[Dict[str, Any]]:
     """Carrega todos os usuários cadastrados."""
