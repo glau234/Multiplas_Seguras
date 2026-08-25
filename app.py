@@ -13,6 +13,8 @@ from views.live_monitor import render_live_monitor
 from views.packball_integration import render_packball_integration
 from views.gemini_advisor import render_gemini_advisor
 from views.paper_trading import render_paper_trading
+from views.login_view import render_login_view
+from views.admin_management import render_admin_management
 
 # ----------------------------------------------------
 # CONFIGURAÇÃO DA PÁGINA STREAMLIT
@@ -351,14 +353,31 @@ st.markdown("""
 
 
 # ----------------------------------------------------
-# BARRA LATERAL DE NAVEGAÇÃO E RECURSOS
+# CAMADA DE AUTENTICAÇÃO E SEGURANÇA (LOGIN VIP)
 # ----------------------------------------------------
-st.sidebar.title("⚽ Múltiplas Seguras")
-st.sidebar.caption("Sistema Avançado de Análise Esportiva")
+if "authenticated_user" not in st.session_state or not st.session_state.get("authenticated_user"):
+    render_login_view()
+    st.stop()
+else:
+    current_user = st.session_state.get("authenticated_user", {})
+    is_admin = (current_user.get("role") == "admin")
 
-app_mode = st.sidebar.radio(
-    "Navegue pelos Painéis:", 
-    [
+    # ----------------------------------------------------
+    # BARRA LATERAL DE NAVEGAÇÃO E RECURSOS
+    # ----------------------------------------------------
+    st.sidebar.title("⚽ Múltiplas Seguras")
+    st.sidebar.caption("Sistema Avançado de Análise Esportiva")
+
+    # Card do Usuário Logado na Barra Lateral
+    user_role_label = "👑 Administrador" if is_admin else "👤 Usuário VIP"
+    with st.sidebar.container(border=True):
+        st.markdown(f"**{current_user.get('name', 'Usuário')}**")
+        st.caption(f"📧 `{current_user.get('email', '')}`\n\nNível: **{user_role_label}**")
+        if st.button("🚪 Sair da Conta", use_container_width=True):
+            st.session_state["authenticated_user"] = None
+            st.rerun()
+
+    menu_options = [
         "🔍 Analisador de Partidas", 
         "📝 Simulador de Bilhetes", 
         "🧪 Simulador Virtual (Paper Trading)",
@@ -367,70 +386,77 @@ app_mode = st.sidebar.radio(
         "🌐 Integração Packball",
         "🤖 Consultor IA (Gemini)"
     ]
-)
 
-st.sidebar.markdown("---")
+    if is_admin:
+        menu_options.append("👑 Gestão de Usuários (Admin)")
 
-# Configurações Gemini AI
-if "gemini_api_key" not in st.session_state or not st.session_state["gemini_api_key"]:
-    st.session_state["gemini_api_key"] = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6LvNVvx0BfHQbiL-_rYW3LN-DJLGChlDB36yrzkJ4ut-Q")
+    app_mode = st.sidebar.radio("Navegue pelos Painéis:", menu_options)
 
-with st.sidebar.expander("🤖 Configuração Gemini AI (Google)", expanded=not bool(st.session_state["gemini_api_key"])):
-    gemini_key_input = st.text_input(
-        "Chave API Gemini:", 
-        value=st.session_state["gemini_api_key"], 
-        type="password", 
-        help="Obtenha sua chave gratuita em https://aistudio.google.com/"
-    )
-    if gemini_key_input:
-        st.session_state["gemini_api_key"] = gemini_key_input
-        os.environ["GEMINI_API_KEY"] = gemini_key_input
-        st.success("IA Gemini Conectada!")
-    else:
-        st.caption("Obtenha sua chave em [Google AI Studio](https://aistudio.google.com/).")
+    st.sidebar.markdown("---")
 
-# Configurações API-Football
-if "api_key" not in st.session_state:
-    st.session_state["api_key"] = "5555576d9dcbeed51c0625dcad03a722"
+    # Configurações Gemini AI
+    if "gemini_api_key" not in st.session_state or not st.session_state["gemini_api_key"]:
+        st.session_state["gemini_api_key"] = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6LvNVvx0BfHQbiL-_rYW3LN-DJLGChlDB36yrzkJ4ut-Q")
 
-with st.sidebar.expander("⚙️ Configurações da API de Futebol"):
-    api_key_input = st.text_input("Chave API-Football (RapidAPI):", value=st.session_state["api_key"], type="password", help="Chave pré-configurada para buscar partidas e dados em tempo real.")
-    if api_key_input:
-        st.session_state["api_key"] = api_key_input
-        st.success("Chave de API ativa!")
+    with st.sidebar.expander("🤖 Configuração Gemini AI (Google)", expanded=not bool(st.session_state["gemini_api_key"])):
+        gemini_key_input = st.text_input(
+            "Chave API Gemini:", 
+            value=st.session_state["gemini_api_key"], 
+            type="password", 
+            help="Obtenha sua chave gratuita em https://aistudio.google.com/"
+        )
+        if gemini_key_input:
+            st.session_state["gemini_api_key"] = gemini_key_input
+            os.environ["GEMINI_API_KEY"] = gemini_key_input
+            st.success("IA Gemini Conectada!")
+        else:
+            st.caption("Obtenha sua chave em [Google AI Studio](https://aistudio.google.com/).")
 
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 💾 Status dos Dados Locais")
-data = load_data()
-st.sidebar.text(f"Partidas Salvas: {len(data.get('matches', []))}")
-st.sidebar.text(f"Bilhetes Armazenados: {len(data.get('tickets', []))}")
-st.sidebar.text(f"Simulações Virtuais: {len(data.get('simulated_tickets', []))}")
-st.sidebar.text(f"Sinais Ao Vivo: {len(data.get('live_signals', []))}")
-st.sidebar.text(f"Etapa Atual: {data.get('leverage_progress', {}).get('current_step', 0)} / 100")
+    # Configurações API-Football
+    if "api_key" not in st.session_state:
+        st.session_state["api_key"] = "5555576d9dcbeed51c0625dcad03a722"
 
-# ----------------------------------------------------
-# ROTEAMENTO DOS DASHBOARDS
-# ----------------------------------------------------
-if app_mode == "🔍 Analisador de Partidas":
-    render_match_analyzer()
+    with st.sidebar.expander("⚙️ Configurações da API de Futebol"):
+        api_key_input = st.text_input("Chave API-Football (RapidAPI):", value=st.session_state["api_key"], type="password", help="Chave pré-configurada para buscar partidas e dados em tempo real.")
+        if api_key_input:
+            st.session_state["api_key"] = api_key_input
+            st.success("Chave de API ativa!")
 
-elif app_mode == "📝 Simulador de Bilhetes":
-    render_ticket_simulator()
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 💾 Status dos Dados Locais")
+    data = load_data()
+    st.sidebar.text(f"Partidas Salvas: {len(data.get('matches', []))}")
+    st.sidebar.text(f"Bilhetes Armazenados: {len(data.get('tickets', []))}")
+    st.sidebar.text(f"Simulações Virtuais: {len(data.get('simulated_tickets', []))}")
+    st.sidebar.text(f"Sinais Ao Vivo: {len(data.get('live_signals', []))}")
+    st.sidebar.text(f"Etapa Atual: {data.get('leverage_progress', {}).get('current_step', 0)} / 100")
 
-elif app_mode == "🧪 Simulador Virtual (Paper Trading)":
-    render_paper_trading()
+    # ----------------------------------------------------
+    # ROTEAMENTO DOS DASHBOARDS
+    # ----------------------------------------------------
+    if app_mode == "🔍 Analisador de Partidas":
+        render_match_analyzer()
 
-elif app_mode == "📈 Projeto de Alavancagem":
-    render_leverage_project()
+    elif app_mode == "📝 Simulador de Bilhetes":
+        render_ticket_simulator()
 
-elif app_mode == "🔥 Monitor Mina de Ouro (Ao Vivo)":
-    render_live_monitor()
+    elif app_mode == "🧪 Simulador Virtual (Paper Trading)":
+        render_paper_trading()
 
-elif app_mode == "🌐 Integração Packball":
-    render_packball_integration()
+    elif app_mode == "📈 Projeto de Alavancagem":
+        render_leverage_project()
 
-elif app_mode == "🤖 Consultor IA (Gemini)":
-    render_gemini_advisor()
+    elif app_mode == "🔥 Monitor Mina de Ouro (Ao Vivo)":
+        render_live_monitor()
+
+    elif app_mode == "🌐 Integração Packball":
+        render_packball_integration()
+
+    elif app_mode == "🤖 Consultor IA (Gemini)":
+        render_gemini_advisor()
+
+    elif app_mode == "👑 Gestão de Usuários (Admin)":
+        render_admin_management()
 
 # Rodapé profissional
 st.markdown("---")
