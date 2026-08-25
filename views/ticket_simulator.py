@@ -107,10 +107,60 @@ def render_ticket_simulator():
     else:
         st.info("📅 **CRONOGRAMA ESPAÇADO:** Permite gerenciamento ativo entre as partidas.")
 
-    if odd_total < 1.42:
-        st.warning(f"⚠️ **ODD ABAIXO DA META:** A Odd Total de **{odd_total:.2f}** está inferior ao valor mínimo sugerido (1.42) para garantir o retorno matemático de longo prazo.")
+    from utils.odds_comparator import compare_ticket_bookmakers
+    ticket_comp = compare_ticket_bookmakers(selecoes)
+    
+    if ticket_comp:
+        st.markdown("---")
+        st.subheader("⚖️ Comparativo de Pagamento: Bet365 vs Betano")
+        
+        col_tb1, col_tb2, col_tb3 = st.columns([1.2, 1.2, 1.6])
+        ret_365 = round(valor_aposta * ticket_comp["odd_total_bet365"], 2)
+        ret_betano = round(valor_aposta * ticket_comp["odd_total_betano"], 2)
+        
+        with col_tb1:
+            st.markdown(
+                f"""
+                <div style="border: 2px solid #059669; border-radius: 12px; padding: 12px; background: #ECFDF5; text-align: center;">
+                    <div style="font-weight: 800; color: #047857;">🟢 Bet365 Brasil</div>
+                    <div style="font-size: 1.5rem; font-weight: 900; color: #065F46;">Odd @{ticket_comp['odd_total_bet365']:.2f}</div>
+                    <div style="font-size: 0.85rem; color: #047857; margin-bottom: 6px;">Retorno: R$ {ret_365:.2f}</div>
+                    <a href="https://www.bet365.bet.br/" target="_blank" style="background: #059669; color: white; padding: 5px 12px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.8rem; display: inline-block;">Apostar na Bet365 ↗</a>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            
+        with col_tb2:
+            st.markdown(
+                f"""
+                <div style="border: 2px solid #EA580C; border-radius: 12px; padding: 12px; background: #FFF7ED; text-align: center;">
+                    <div style="font-weight: 800; color: #C2410C;">🟠 Betano Brasil</div>
+                    <div style="font-size: 1.5rem; font-weight: 900; color: #9A3412;">Odd @{ticket_comp['odd_total_betano']:.2f}</div>
+                    <div style="font-size: 0.85rem; color: #C2410C; margin-bottom: 6px;">Retorno: R$ {ret_betano:.2f}</div>
+                    <a href="https://www.betano.bet.br/" target="_blank" style="background: #EA580C; color: white; padding: 5px 12px; border-radius: 6px; font-weight: 700; text-decoration: none; font-size: 0.8rem; display: inline-block;">Apostar na Betano ↗</a>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+            
+        with col_tb3:
+            winner_color = "#047857" if ticket_comp['melhor_casa'] == "Bet365" else "#EA580C"
+            st.markdown(
+                f"""
+                <div style="border: 1px solid #CBD5E1; border-radius: 12px; padding: 12px; background: #FFFFFF; height: 100%; display: flex; flex-direction: column; justify-content: center;">
+                    <div style="font-size: 0.85rem; color: #64748B; font-weight: 700;">🏆 Casa Recomendada para este Bilhete:</div>
+                    <div style="font-size: 1.3rem; font-weight: 900; color: {winner_color}; margin: 2px 0;">{ticket_comp['melhor_casa']} (+{ticket_comp['vantagem_pct']}%)</div>
+                    <div style="font-size: 0.82rem; color: #334155;">Esta casa paga mais para esta combinação exata de jogos.</div>
+                    <div style="margin-top: 6px;">
+                        <a href="{ticket_comp['link_vencedor']}" target="_blank" style="font-size: 0.85rem; font-weight: 700; color: {winner_color}; text-decoration: underline;">Abrir {ticket_comp['melhor_casa']} ↗</a>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-    # Accão: Salvar & Exportar
+    # Ação: Salvar & Exportar
     st.markdown("---")
     ticket_payload = {
         "tipo_bilhete": tipo_bilhete,

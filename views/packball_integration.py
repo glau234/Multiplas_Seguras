@@ -12,6 +12,7 @@ from utils.gemini_assistant import (
     lookup_or_generate_match_packball_stats,
     analyze_match_best_ticket
 )
+from utils.odds_comparator import render_bookmaker_comparison_card
 
 def render_packball_integration():
     # Se houver um jogo selecionado para visualização completa em página dedicada
@@ -224,6 +225,9 @@ def render_match_query_module():
         with col_c4:
             st.success(f"🛡️ **Entrada Principal:**\n**Handicap Europeu +3 ({maior_odd_time})**\nOdd Estimada: ~1.14 - 1.18")
 
+        # Comparador Bet365 vs Betano
+        render_bookmaker_comparison_card(queried_match, market_type="Handicap Europeu +3", compact=False)
+
         st.markdown("---")
 
         # Bloco 2: Métricas Nativas de Gols e Escanteios (Packball VIP)
@@ -332,6 +336,9 @@ def render_match_card(match, idx, tab_key, filtro_max_diff, filtro_max_exg):
         c2.metric("Empate", f"{odd_e:.2f}")
         c3.metric(f"Vitória {match['time_visi']}", f"{odd_v:.2f}")
         c4.metric("ExG Oficial", f"{exg_val} gols")
+        
+        # Comparativo Compacto Bet365 vs Betano
+        render_bookmaker_comparison_card(match, market_type="Handicap Europeu +3", compact=True)
         
         col_act1, col_act2 = st.columns(2)
         with col_act1:
@@ -444,6 +451,9 @@ def render_match_details_page(match):
     col_c3.metric(f"Vitória {match['time_visi']}", f"{odd_visi:.2f}")
     with col_c4:
         st.success(f"🛡️ **Entrada Sugerida:**\n**Handicap Europeu +3 ({maior_odd_time})**\nOdd Estimada: ~1.12 - 1.18")
+        
+    # Comparador Bet365 vs Betano na página de detalhes
+    render_bookmaker_comparison_card(match, market_type="Handicap Europeu +3", compact=False)
         
     st.markdown("---")
     

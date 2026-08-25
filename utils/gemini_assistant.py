@@ -444,9 +444,10 @@ def analyze_match_best_ticket(match_data: Dict[str, Any], api_key: str) -> str:
 Com base no Método Múltiplas Seguras & Mina de Ouro:
 1. 🎯 **Diagnóstico Tático do Confronto** (Qual o cenário mais provável e os riscos de zebra).
 2. 🛡️ **Melhor Entrada Individual de Alta Segurança** (Ex: Handicap Europeu +3 para {maior_odd_time}, Under Gols ou Escanteios) com cotação estimada e justificativa matemática (+EV).
-3. 🎫 **Sugestão de Combinação para Bilhete Duplo/Triplo** (Com que tipo de jogo secundário combinar para atingir Odd entre 1.40 e 1.90 sem aumentar o risco).
-4. ⚡ **Gatilho de Entrada ao Vivo (Mina de Ouro)**: O que observar no 2º tempo (APM >= 1.0, escanteios ou gols) caso queira operar ao vivo.
-5. 💡 **Nota de Confiança (0 a 10) e Gestão de Banca Recomendada (Stake %)**.
+3. ⚖️ **Comparativo de Casas de Apostas**: Comparar as cotações entre **Bet365 Brasil (bet365.bet.br)** e **Betano Brasil (betano.bet.br)** e indicar qual a melhor casa para apostar nesta seleção.
+4. 🎫 **Sugestão de Combinação para Bilhete Duplo/Triplo** (Com que tipo de jogo secundário combinar para atingir Odd entre 1.40 e 1.90 sem aumentar o risco).
+5. ⚡ **Gatilho de Entrada ao Vivo (Mina de Ouro)**: O que observar no 2º tempo (APM >= 1.0, escanteios ou gols) caso queira operar ao vivo.
+6. 💡 **Nota de Confiança (0 a 10) e Gestão de Banca Recomendada (Stake %)**.
 """
     return call_gemini_api(prompt, api_key)
 
