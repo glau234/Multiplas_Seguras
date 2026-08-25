@@ -143,6 +143,11 @@ async def scrape_packball(email, password, num_days=7):
                 }''')
                 
                 for m in day_matches:
+                    # Critério obrigatório: Não trazer nenhuma partida da Série B do Campeonato Brasileiro
+                    from utils.calculations import is_brazil_serie_b
+                    if is_brazil_serie_b(pais=m.get('pais', ''), liga=m.get('liga', ''), time_casa=m.get('time_casa', ''), time_visi=m.get('time_visi', '')):
+                        continue
+                        
                     match_key = f"{current_date}_{m['time_casa']}_{m['time_visi']}"
                     if match_key not in seen_match_keys:
                         seen_match_keys.add(match_key)
@@ -204,6 +209,8 @@ def fetch_packball_matches(username, password, num_days=7):
         print(f"Aviso no Playwright: {e}")
         
     if isinstance(res, list) and len(res) > 0:
+        from utils.calculations import filter_out_serie_b
+        res = filter_out_serie_b(res)
         try:
             os.makedirs("data", exist_ok=True)
             with open("data/cached_packball.json", "w", encoding="utf-8") as f:
@@ -218,7 +225,8 @@ def fetch_packball_matches(username, password, num_days=7):
             with open("data/cached_packball.json", "r", encoding="utf-8") as f:
                 cached = json.load(f)
                 if cached and len(cached) > 0:
-                    return cached
+                    from utils.calculations import filter_out_serie_b
+                    return filter_out_serie_b(cached)
     except Exception:
         pass
         

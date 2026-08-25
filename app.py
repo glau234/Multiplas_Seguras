@@ -11,6 +11,7 @@ from views.ticket_simulator import render_ticket_simulator
 from views.leverage_project import render_leverage_project
 from views.live_monitor import render_live_monitor
 from views.packball_integration import render_packball_integration
+from views.gemini_advisor import render_gemini_advisor
 
 # ----------------------------------------------------
 # CONFIGURAÇÃO DA PÁGINA STREAMLIT
@@ -290,6 +291,55 @@ st.markdown("""
         box-shadow: 0 2px 6px rgba(37, 99, 235, 0.4) !important;
     }
 
+    /* Modern Tabs / Abas de Ligas */
+    div[data-testid="stTabs"] {
+        margin-top: 10px !important;
+        margin-bottom: 20px !important;
+    }
+
+    div[data-baseweb="tab-list"] {
+        gap: 8px !important;
+        background-color: #E5E7EB !important;
+        padding: 6px !important;
+        border-radius: 16px !important;
+        border: 1px solid #D1D5DB !important;
+    }
+
+    button[data-baseweb="tab"] {
+        border-radius: 12px !important;
+        padding: 8px 16px !important;
+        font-weight: 700 !important;
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+        color: #374151 !important;
+        background-color: transparent !important;
+        border: none !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+
+    button[data-baseweb="tab"] p {
+        font-weight: 700 !important;
+        font-size: 0.92rem !important;
+        color: #374151 !important;
+    }
+
+    button[data-baseweb="tab"][aria-selected="true"] {
+        background-color: #111827 !important;
+        box-shadow: 0 4px 12px rgba(17, 24, 39, 0.15) !important;
+    }
+
+    button[data-baseweb="tab"][aria-selected="true"] p {
+        color: #FFFFFF !important;
+        font-weight: 800 !important;
+    }
+
+    button[data-baseweb="tab"]:hover:not([aria-selected="true"]) {
+        background-color: #F3F4F6 !important;
+    }
+
+    div[data-baseweb="tab-highlight"] {
+        display: none !important;
+    }
+
     /* Separadores */
     hr {
         border-color: #E5E7EB !important;
@@ -312,11 +362,32 @@ app_mode = st.sidebar.radio(
         "📝 Simulador de Bilhetes", 
         "📈 Projeto de Alavancagem", 
         "🔥 Monitor Mina de Ouro (Ao Vivo)",
-        "🌐 Integração Packball"
+        "🌐 Integração Packball",
+        "🤖 Consultor IA (Gemini)"
     ]
 )
 
 st.sidebar.markdown("---")
+
+# Configurações Gemini AI
+if "gemini_api_key" not in st.session_state or not st.session_state["gemini_api_key"]:
+    st.session_state["gemini_api_key"] = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6LvNVvx0BfHQbiL-_rYW3LN-DJLGChlDB36yrzkJ4ut-Q")
+
+with st.sidebar.expander("🤖 Configuração Gemini AI (Google)", expanded=not bool(st.session_state["gemini_api_key"])):
+    gemini_key_input = st.text_input(
+        "Chave API Gemini:", 
+        value=st.session_state["gemini_api_key"], 
+        type="password", 
+        help="Obtenha sua chave gratuita em https://aistudio.google.com/"
+    )
+    if gemini_key_input:
+        st.session_state["gemini_api_key"] = gemini_key_input
+        os.environ["GEMINI_API_KEY"] = gemini_key_input
+        st.success("IA Gemini Conectada!")
+    else:
+        st.caption("Obtenha sua chave em [Google AI Studio](https://aistudio.google.com/).")
+
+# Configurações API-Football
 if "api_key" not in st.session_state:
     st.session_state["api_key"] = "5555576d9dcbeed51c0625dcad03a722"
 
@@ -351,6 +422,9 @@ elif app_mode == "🔥 Monitor Mina de Ouro (Ao Vivo)":
 
 elif app_mode == "🌐 Integração Packball":
     render_packball_integration()
+
+elif app_mode == "🤖 Consultor IA (Gemini)":
+    render_gemini_advisor()
 
 # Rodapé profissional
 st.markdown("---")

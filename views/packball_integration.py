@@ -1,7 +1,13 @@
 import streamlit as st
 import time
 from utils.packball_scraper import fetch_packball_matches
-from utils.calculations import calculate_xg_and_defense, calculate_team_corners
+from utils.calculations import (
+    calculate_xg_and_defense, 
+    calculate_team_corners, 
+    filter_out_serie_b, 
+    group_matches_by_league,
+    get_country_flag
+)
 
 def render_packball_integration():
     # Se houver um jogo selecionado para visualização completa em página dedicada
@@ -11,7 +17,7 @@ def render_packball_integration():
         return
 
     st.title("🌐 Integração Packball VIP - Estatísticas Oficiais")
-    st.markdown("Extração oficial dos próximos 7 dias do Packball para assinantes VIP. Dados nativos de **ExG (Gols)**, **ExC (Escanteios do Jogo e por Time)**, **Ambas Marcam (BTS %)**, **PPG**, **Probabilidade de Vitória** e **Poder Defensivo**.")
+    st.markdown("Extração oficial dos próximos 7 dias do Packball para assinantes VIP com **separação automática por ligas** e exclusão obrigatória da Série B brasileira. Dados nativos de **ExG (Gols)**, **ExC (Escanteios)**, **Ambas Marcam (BTS %)**, **PPG** e **Poder Defensivo**.")
 
     st.markdown("---")
     
@@ -28,6 +34,8 @@ def render_packball_integration():
         filtro_max_exg = st.slider("ExG Máximo da Partida (Packball):", min_value=1.50, max_value=4.50, value=3.20, step=0.1, help="Partidas com menor ExG favorecem o Handicap +3 e mercados Under.")
         filtro_max_diff = st.slider("Diferença Máxima de Odds (Equilíbrio):", min_value=0.50, max_value=3.50, value=2.50, step=0.1, help="Garante que as partidas sejam parelhas e equilibradas.")
         
+        st.info("🛡️ **Critério Ativo de Segurança:** Partidas da **Série B do Campeonato Brasileiro** são excluídas automaticamente da extração.")
+        
         if st.button(f"🚀 Iniciar Extração Oficial VIP ({num_dias} Dias)", use_container_width=True):
             if not username or not password:
                 st.error("Por favor, insira o usuário e a senha do Packball.")
@@ -38,9 +46,12 @@ def render_packball_integration():
                     if raw_matches and isinstance(raw_matches, dict) and "error" in raw_matches:
                         st.error(raw_matches.get("error", "Erro desconhecido ao extrair dados."))
                     elif raw_matches:
-                        # Enriquecer com métricas de defesa calculadas sobre os dados reais
+                        # 1. Filtrar partidas da Série B do Brasileirão
+                        clean_matches = filter_out_serie_b(raw_matches)
+                        
+                        # 2. Enriquecer com métricas de defesa calculadas sobre os dados reais
                         enriched_matches = []
-                        for m in raw_matches:
+                        for m in clean_matches:
                             stats = calculate_xg_and_defense(m.get("odd_casa", 2.0), m.get("odd_empate", 3.10), m.get("odd_visi", 2.0))
                             enriched_match = dict(m)
                             enriched_match.update(stats)
@@ -51,83 +62,170 @@ def render_packball_integration():
                             enriched_matches.append(enriched_match)
                             
                         st.session_state["packball_matches"] = enriched_matches
-                        st.success(f"✅ {len(enriched_matches)} partidas VIP extraídas com sucesso direto do Packball!")
+                        st.success(f"✅ {len(enriched_matches)} partidas VIP extraídas e organizadas por ligas!")
                     else:
                         st.warning("Nenhum jogo encontrado que atenda aos critérios.")
 
     with col2:
-        st.subheader("📊 Painel de Confrontos VIP")
+        st.subheader("📊 Painel de Confrontos por Ligas")
         
         if "packball_matches" in st.session_state:
-            matches = st.session_state["packball_matches"]
+            raw_stored_matches = st.session_state["packball_matches"]
+            matches = filter_out_serie_b(raw_stored_matches)
             
             if not matches:
-                st.info("Nenhuma partida encontrada.")
+                st.info("Nenhuma partida encontrada após a aplicação dos filtros.")
             else:
-                # Aplicar filtros
-                aprovados = []
+                # Agrupar partidas por liga
+                grouped_by_league = group_matches_by_league(matches)
+                total_ligas = len(grouped_by_league)
+                
+                # Calcular aprovados gerais
+                todos_aprovados = []
                 for m in matches:
                     odd_c = m.get("odd_casa", 1.0)
                     odd_v = m.get("odd_visi", 1.0)
                     exg_val = float(m.get("exg_oficial", m.get("exg", 2.5)))
-                    
                     diff_odd = abs(odd_c - odd_v)
-                    is_aprovado = (diff_odd <= filtro_max_diff) and (exg_val <= filtro_max_exg)
-                    if is_aprovado:
-                        aprovados.append(m)
+                    if (diff_odd <= filtro_max_diff) and (exg_val <= filtro_max_exg):
+                        todos_aprovados.append(m)
                 
-                st.write(f"Exibindo **{len(aprovados)}** partidas aprovadas de um total de **{len(matches)}** confrontos VIP.")
+                # Métricas do topo
+                c_m1, c_m2, c_m3 = st.columns(3)
+                c_m1.metric("Total de Ligas", f"{total_ligas}")
+                c_m2.metric("Total de Jogos", f"{len(matches)}")
+                c_m3.metric("Jogos Aprovados", f"{len(todos_aprovados)}", delta="Qualificados" if todos_aprovados else "0")
                 
-                for idx, match in enumerate(matches):
-                    odd_casa = match.get("odd_casa", 2.0)
-                    odd_empate = match.get("odd_empate", 3.10)
-                    odd_visi = match.get("odd_visi", 2.0)
-                    exg_oficial = match.get("exg_oficial", match.get("exg", 2.5))
-                    escanteios_avg = match.get("escanteios_avg", match.get("corners", "N/A"))
-                    escanteios_exc = match.get("escanteios_exc", "")
+                st.markdown("---")
+                st.markdown("### 🗂️ Selecione a Aba da Liga Desejada:")
+                
+                # Criação das Abas Reais por Liga
+                tab_titles = [f"🌐 Todas as Ligas ({len(matches)})"] + [
+                    f"{league_name} ({len(l_matches)})" for league_name, l_matches in grouped_by_league.items()
+                ]
+                tabs = st.tabs(tab_titles)
+                
+                # Aba 0: Visão Geral de Todas as Ligas
+                with tabs[0]:
+                    if len(todos_aprovados) > 0:
+                        if st.button(f"➕ Enviar Todos os {len(todos_aprovados)} Jogos Aprovados de Todas as Ligas para o Simulador", key="btn_send_all_global", use_container_width=True):
+                            transformed_aprovados = []
+                            for m in todos_aprovados:
+                                maior_odd_time = m['time_casa'] if m.get('odd_casa', 1.0) > m.get('odd_visi', 1.0) else m['time_visi']
+                                transformed_aprovados.append({
+                                    "id": m.get("id", str(time.time())),
+                                    "jogo": f"{m['time_casa']} vs {m['time_visi']}",
+                                    "mercado": f"Handicap Europeu +3 ({maior_odd_time})",
+                                    "odd": 1.15,
+                                    "status": "Pendente",
+                                    "data": m.get("data", "Hoje"),
+                                    "liga": m.get("liga", "")
+                                })
+                            st.session_state["packball_approved_matches"] = transformed_aprovados
+                            st.success(f"✅ {len(todos_aprovados)} partidas de todas as ligas enviadas para o Simulador!")
                     
-                    # Calcular ExC do Jogo e por Time
-                    exc_base = escanteios_exc if escanteios_exc else escanteios_avg
-                    corners_calc = calculate_team_corners(exc_base, odd_casa, odd_visi)
-                    
-                    pais = match.get("pais", "")
-                    liga = match.get("liga", "")
-                    data_str = match.get("data", "Hoje")
-                    
-                    diff_odd = abs(odd_casa - odd_visi)
-                    is_match_aprovado = (diff_odd <= filtro_max_diff) and (float(exg_oficial) <= filtro_max_exg)
-                    status_icon = "🟢" if is_match_aprovado else "⚪"
-                    
-                    with st.container(border=True):
-                        c_title, c_btn = st.columns([3, 1])
-                        with c_title:
-                            st.markdown(f"### {status_icon} {match['time_casa']} vs {match['time_visi']}")
-                            st.caption(f"📅 **{data_str}** | 🏆 **{liga}** ({pais}) | ⚽ **ExG:** {exg_oficial} | 🚩 **ExC Jogo:** {corners_calc['exc_total']} (Casa: {corners_calc['exc_casa']} | Visi: {corners_calc['exc_visi']})")
-                        with c_btn:
-                            st.write("")
-                            if st.button("🔍 Ver Análise Completa", key=f"btn_detalhe_{idx}_{match.get('id', idx)}", use_container_width=True):
-                                st.session_state["selected_packball_match"] = match
-                                st.rerun()
-
-                if len(aprovados) > 0:
-                    st.markdown("---")
-                    if st.button(f"➕ Enviar {len(aprovados)} Aprovados para Simulador de Bilhetes", use_container_width=True):
-                        transformed_aprovados = []
-                        for m in aprovados:
-                            maior_odd_time = m['time_casa'] if m.get('odd_casa', 1.0) > m.get('odd_visi', 1.0) else m['time_visi']
-                            transformed_aprovados.append({
-                                "id": m.get("id", str(time.time())),
-                                "jogo": f"{m['time_casa']} vs {m['time_visi']}",
-                                "mercado": f"Handicap Europeu +3 ({maior_odd_time})",
-                                "odd": 1.15,
-                                "status": "Pendente",
-                                "data": m.get("data", "Hoje")
-                            })
-                            
-                        st.session_state["packball_approved_matches"] = transformed_aprovados
-                        st.success(f"✅ {len(aprovados)} partidas enviadas para o Simulador com sucesso!")
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    for lg_idx, (league_title, league_matches) in enumerate(grouped_by_league.items()):
+                        with st.container(border=True):
+                            render_league_section(league_title, league_matches, filtro_max_diff, filtro_max_exg, tab_key=f"all_{lg_idx}", show_header=True)
+                
+                # Abas 1..N: Abas Individuais de cada Liga (ex: Serie A do Brasil, La Liga, etc.)
+                for i, (league_title, league_matches) in enumerate(grouped_by_league.items(), start=1):
+                    with tabs[i]:
+                        render_league_section(league_title, league_matches, filtro_max_diff, filtro_max_exg, tab_key=f"tab_single_{i}", show_header=True)
         else:
-            st.info("Preencha suas credenciais VIP e inicie a extração para visualizar todos os dados nativos do Packball.")
+            st.info("Preencha suas credenciais VIP e inicie a extração para visualizar todos os dados nativos do Packball organizados por abas de ligas.")
+
+
+def render_match_card(match, idx, tab_key, filtro_max_diff, filtro_max_exg):
+    """Renderiza o card visual de uma partida individual."""
+    odd_casa = match.get("odd_casa", 2.0)
+    odd_empate = match.get("odd_empate", 3.10)
+    odd_visi = match.get("odd_visi", 2.0)
+    exg_oficial = match.get("exg_oficial", match.get("exg", 2.5))
+    escanteios_avg = match.get("escanteios_avg", match.get("corners", "N/A"))
+    escanteios_exc = match.get("escanteios_exc", "")
+    
+    # Calcular ExC do Jogo e por Time
+    exc_base = escanteios_exc if escanteios_exc else escanteios_avg
+    corners_calc = calculate_team_corners(exc_base, odd_casa, odd_visi)
+    
+    pais = match.get("pais", "")
+    liga = match.get("liga", "")
+    data_str = match.get("data", "Hoje")
+    horario = match.get("horario", "--:--")
+    
+    diff_odd = abs(odd_casa - odd_visi)
+    is_match_aprovado = (diff_odd <= filtro_max_diff) and (float(exg_oficial) <= filtro_max_exg)
+    status_icon = "🟢" if is_match_aprovado else "⚪"
+    status_badge = "Aprovado" if is_match_aprovado else "Fora dos Filtros"
+    
+    with st.container(border=True):
+        c_match_info, c_match_btn = st.columns([3, 1.2])
+        with c_match_info:
+            st.markdown(f"#### {status_icon} {match['time_casa']} vs {match['time_visi']}")
+            st.caption(f"📅 **{data_str}** | ⏰ **{horario}** | 🏆 **{liga}** ({pais}) | 💰 **Odds:** {odd_casa:.2f} x {odd_empate:.2f} x {odd_visi:.2f} (Diff: {diff_odd:.2f})")
+            st.markdown(f"⚽ **ExG Oficial:** `{exg_oficial}` | 🚩 **ExC Jogo:** `{corners_calc['exc_total']}` (Casa: `{corners_calc['exc_casa']}` | Visi: `{corners_calc['exc_visi']}`) | 🎯 **Status:** `{status_badge}`")
+        with c_match_btn:
+            st.write("")
+            if st.button("🔍 Ver Diagnóstico", key=f"btn_detalhe_{tab_key}_{idx}_{match.get('id', idx)}", use_container_width=True):
+                st.session_state["selected_packball_match"] = match
+                st.rerun()
+            
+            # Botão para adicionar jogo individual
+            if st.button("➕ Add Bilhete", key=f"btn_add_card_{tab_key}_{idx}_{match.get('id', idx)}", use_container_width=True):
+                if "packball_approved_matches" not in st.session_state:
+                    st.session_state["packball_approved_matches"] = []
+                maior_odd_time = match['time_casa'] if odd_casa > odd_visi else match['time_visi']
+                st.session_state["packball_approved_matches"].append({
+                    "id": match.get("id", str(time.time())),
+                    "jogo": f"{match['time_casa']} vs {match['time_visi']}",
+                    "mercado": f"Handicap Europeu +3 ({maior_odd_time})",
+                    "odd": 1.15,
+                    "status": "Pendente",
+                    "data": match.get("data", "Hoje"),
+                    "liga": match.get("liga", "")
+                })
+                st.toast(f"Adicionado: {match['time_casa']} vs {match['time_visi']}", icon="✅")
+
+
+def render_league_section(league_title, league_matches, filtro_max_diff, filtro_max_exg, tab_key, show_header=True):
+    """Renderiza o cabeçalho e todas as partidas de uma liga."""
+    aprovados_liga = [
+        m for m in league_matches 
+        if (abs(m.get("odd_casa", 1.0) - m.get("odd_visi", 1.0)) <= filtro_max_diff) and 
+           (float(m.get("exg_oficial", m.get("exg", 2.5))) <= filtro_max_exg)
+    ]
+    
+    if show_header:
+        c_lg_title, c_lg_action = st.columns([2.5, 1.5])
+        with c_lg_title:
+            st.markdown(f"### {league_title}")
+            st.caption(f"📊 **{len(league_matches)} confronto(s)** nesta liga &nbsp;|&nbsp; 🟢 **{len(aprovados_liga)} aprovado(s)** pelos critérios")
+        with c_lg_action:
+            if len(aprovados_liga) > 0:
+                if st.button(f"➕ Enviar Aprovados ({len(aprovados_liga)})", key=f"btn_send_lg_{tab_key}_{league_title}", use_container_width=True):
+                    if "packball_approved_matches" not in st.session_state:
+                        st.session_state["packball_approved_matches"] = []
+                    
+                    for m in aprovados_liga:
+                        maior_odd_time = m['time_casa'] if m.get('odd_casa', 1.0) > m.get('odd_visi', 1.0) else m['time_visi']
+                        st.session_state["packball_approved_matches"].append({
+                            "id": m.get("id", str(time.time())),
+                            "jogo": f"{m['time_casa']} vs {m['time_visi']}",
+                            "mercado": f"Handicap Europeu +3 ({maior_odd_time})",
+                            "odd": 1.15,
+                            "status": "Pendente",
+                            "data": m.get("data", "Hoje"),
+                            "liga": m.get("liga", "")
+                        })
+                    st.success(f"✅ {len(aprovados_liga)} jogo(s) de {league_title} enviados para o Simulador!")
+        st.markdown("---")
+
+    for idx, match in enumerate(league_matches):
+        render_match_card(match, idx, tab_key, filtro_max_diff, filtro_max_exg)
+
+
 
 
 def render_match_details_page(match):
@@ -259,7 +357,32 @@ def render_match_details_page(match):
         
     st.markdown("---")
     
-    # Bloco 5: Ações
+    st.markdown("---")
+
+    # Bloco 5: Diagnóstico com Google Gemini AI
+    st.subheader("🤖 Diagnóstico Especialista com Google Gemini")
+    gemini_key = st.session_state.get("gemini_api_key", "")
+    
+    if not gemini_key:
+        st.info("💡 Insira sua Chave da API do Gemini na barra lateral para liberar análises com inteligência artificial sobre esta partida.")
+    else:
+        from utils.gemini_assistant import analyze_match_with_gemini
+        
+        pergunta_custom = st.text_input("Deseja fazer alguma pergunta específica sobre este confronto ao Gemini?", placeholder="Ex: O Handicap +3 é seguro considerando a média de gols dos últimos 5 jogos?", key="input_ia_match")
+        
+        if st.button("✨ Gerar Parecer Tático com IA", use_container_width=True, key="btn_ia_match_analyze"):
+            with st.spinner("O Google Gemini está analisando as estatísticas, cotações e poder defensivo deste jogo..."):
+                parecer = analyze_match_with_gemini(match, gemini_key, pergunta_custom)
+                st.session_state[f"ia_parecer_{match.get('id')}"] = parecer
+                
+        if f"ia_parecer_{match.get('id')}" in st.session_state:
+            with st.container(border=True):
+                st.markdown("### 🧠 Parecer da Inteligência Artificial:")
+                st.markdown(st.session_state[f"ia_parecer_{match.get('id')}"])
+
+    st.markdown("---")
+    
+    # Bloco 6: Ações
     st.subheader("⚡ Ações para este Jogo")
     btn_col1, btn_col2 = st.columns(2)
     
@@ -274,7 +397,8 @@ def render_match_details_page(match):
                 "mercado": f"Handicap Europeu +3 ({maior_odd_time})",
                 "odd": 1.15,
                 "status": "Pendente",
-                "data": match.get("data", "Hoje")
+                "data": match.get("data", "Hoje"),
+                "liga": match.get("liga", "")
             })
             st.success(f"✅ Partida **{match['time_casa']} vs {match['time_visi']}** adicionada ao Simulador de Bilhetes!")
             

@@ -189,11 +189,13 @@ def fetch_todays_matches(api_key: str = None) -> List[Dict[str, Any]]:
                         "ataques_perigosos": 50,
                         "finalizacoes": 10
                     })
-                return parsed_matches
+                from utils.calculations import filter_out_serie_b
+                return filter_out_serie_b(parsed_matches)
     except Exception as e:
         print(f"Aviso API: {e}")
 
-    return DEMO_MATCHES
+    from utils.calculations import filter_out_serie_b
+    return filter_out_serie_b(DEMO_MATCHES)
 
 def fetch_xg_for_matches(packball_matches: List[Dict[str, Any]], api_key: str = None) -> List[Dict[str, Any]]:
     """

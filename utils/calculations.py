@@ -179,3 +179,155 @@ def calculate_team_corners(escanteios_total: Any, odd_casa: float, odd_visi: flo
         "share_visi_pct": round(share_visi * 100, 1)
     }
 
+def is_brazil_serie_b(pais: str = "", liga: str = "", label: str = "", time_casa: str = "", time_visi: str = "") -> bool:
+    """
+    Verifica com precisão se a partida pertence à Série B do Campeonato Brasileiro.
+    Filtra variações como 'Série B', 'Serie B', 'Brasileirão Série B', etc., restrito ao Brasil.
+    Ligas de outros países (como Serie B da Itália) são preservadas.
+    """
+    pais_lower = str(pais or "").strip().lower()
+    liga_lower = str(liga or "").strip().lower()
+    label_lower = str(label or "").strip().lower()
+    
+    # Termos indicativos de Série B / Segunda Divisão
+    serie_b_keywords = [
+        "serie b", "série b", "serie-b", "série-b", 
+        "brasileirao b", "brasileirão b", "brasileiro b", 
+        "segunda divisão", "segunda divisao", "2ª divisão", "2a divisao"
+    ]
+    
+    # Nomes explícitos de liga brasileira Série B
+    explicit_br_b = [
+        "brasileirão série b", "brasileirao serie b", "brasileiro serie b", 
+        "brasileiro série b", "brazil serie b", "brazil série b", 
+        "campeonato brasileiro série b", "campeonato brasileiro serie b",
+        "campeonato brasileiro b", "campeonato brasileiro - serie b", "campeonato brasileiro - série b"
+    ]
+    if any(k in liga_lower for k in explicit_br_b) or any(k in label_lower for k in explicit_br_b):
+        return True
+
+    # Se o país é Brasil (BRA, BR, Brasil, Brazil)
+    is_brazil = (
+        pais_lower in ["bra", "brasil", "brazil", "br"] or 
+        "brasileir" in liga_lower or 
+        "[br" in label_lower or 
+        "brasileirao" in label_lower or 
+        "brasileirão" in label_lower
+    )
+    
+    if is_brazil and any(kw in liga_lower for kw in serie_b_keywords):
+        return True
+        
+    if is_brazil and any(kw in label_lower for kw in serie_b_keywords):
+        return True
+        
+    return False
+
+def filter_out_serie_b(matches: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Remove todas as partidas da Série B do Campeonato Brasileiro de uma lista de partidas."""
+    filtered = []
+    for m in matches:
+        if not is_brazil_serie_b(
+            pais=m.get("pais", ""),
+            liga=m.get("liga", ""),
+            label=m.get("label", ""),
+            time_casa=m.get("time_casa", ""),
+            time_visi=m.get("time_visi", "")
+        ):
+            filtered.append(m)
+    return filtered
+
+def get_country_flag(pais: str) -> str:
+    """Retorna o emoji da bandeira correspondente ao código ou nome do país."""
+    p = str(pais or "").strip().upper()
+    flags = {
+        "ESP": "🇪🇸", "ESPANHA": "🇪🇸", "SPAIN": "🇪🇸",
+        "ENG": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "INGLATERRA": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "ENGLAND": "🏴󠁧󠁢󠁥󠁮󠁧󠁿", "GBR": "🇬🇧",
+        "BRA": "🇧🇷", "BRASIL": "🇧🇷", "BRAZIL": "🇧🇷",
+        "ARG": "🇦🇷", "ARGENTINA": "🇦🇷",
+        "ITA": "🇮🇹", "ITÁLIA": "🇮🇹", "ITALY": "🇮🇹",
+        "GER": "🇩🇪", "ALEMANHA": "🇩🇪", "GERMANY": "🇩🇪", "DEU": "🇩🇪",
+        "FRA": "🇫🇷", "FRANÇA": "🇫🇷", "FRANCE": "🇫🇷",
+        "POR": "🇵🇹", "PORTUGAL": "🇵🇹",
+        "FIN": "🇫🇮", "FINLÂNDIA": "🇫🇮", "FINLAND": "🇫🇮",
+        "USA": "🇺🇸", "ESTADOS UNIDOS": "🇺🇸",
+        "MEX": "🇲🇽", "MÉXICO": "🇲🇽", "MEXICO": "🇲🇽",
+        "COL": "🇨🇴", "COLÔMBIA": "🇨🇴", "COLOMBIA": "🇨🇴",
+        "NED": "🇳🇱", "HOLANDA": "🇳🇱", "NETHERLANDS": "🇳🇱",
+        "TUR": "🇹🇷", "TURQUIA": "🇹🇷", "TURKEY": "🇹🇷",
+        "URU": "🇺🇾", "URUGUAI": "🇺🇾", "URUGUAY": "🇺🇾",
+        "PAR": "🇵🇾", "PARAGUAI": "🇵🇾", "PARAGUAY": "🇵🇾",
+        "CHI": "🇨🇱", "CHILE": "🇨🇱",
+        "BEL": "🇧🇪", "BÉLGICA": "🇧🇪", "BELGIUM": "🇧🇪",
+        "NOR": "🇳🇴", "NORUEGA": "🇳🇴", "NORWAY": "🇳🇴",
+        "SWE": "🇸🇪", "SUÉCIA": "🇸🇪", "SWEDEN": "🇸🇪",
+        "DEN": "🇩🇰", "DINAMARCA": "🇩🇰", "DENMARK": "🇩🇰",
+        "AUT": "🇦🇹", "ÁUSTRIA": "🇦🇹", "AUSTRIA": "🇦🇹",
+        "SUI": "🇨🇭", "SUÍÇA": "🇨🇭", "SWITZERLAND": "🇨🇭", "CHE": "🇨🇭",
+        "SCO": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "ESCÓCIA": "🏴󠁧󠁢󠁳󠁣󠁴󠁿", "SCOTLAND": "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
+        "GRE": "🇬🇷", "GRÉCIA": "🇬🇷", "GREECE": "🇬🇷",
+        "KOR": "🇰🇷", "CORÉIA": "🇰🇷", "KOREA": "🇰🇷",
+        "JPN": "🇯🇵", "JAPÃO": "🇯🇵", "JAPAN": "🇯🇵",
+        "SAU": "🇸🇦", "ARÁBIA": "🇸🇦", "SAUDI": "🇸🇦",
+    }
+    return flags.get(p, "🏆")
+
+def get_country_display_name(pais: str) -> str:
+    """Retorna o nome do país formatado em português."""
+    p = str(pais or "").strip().upper()
+    names = {
+        "BRA": "Brasil", "BRASIL": "Brasil", "BRAZIL": "Brasil",
+        "ESP": "Espanha", "ESPANHA": "Espanha", "SPAIN": "Espanha",
+        "ENG": "Inglaterra", "INGLATERRA": "Inglaterra", "ENGLAND": "Inglaterra", "GBR": "Reino Unido",
+        "ARG": "Argentina", "ARGENTINA": "Argentina",
+        "ITA": "Itália", "ITÁLIA": "Itália", "ITALY": "Itália",
+        "GER": "Alemanha", "ALEMANHA": "Alemanha", "GERMANY": "Alemanha", "DEU": "Alemanha",
+        "FRA": "França", "FRANÇA": "França", "FRANCE": "França",
+        "POR": "Portugal", "PORTUGAL": "Portugal",
+        "FIN": "Finlândia", "FINLÂNDIA": "Finlândia", "FINLAND": "Finlândia",
+        "USA": "EUA", "ESTADOS UNIDOS": "EUA",
+        "MEX": "México", "MÉXICO": "México",
+        "COL": "Colômbia", "COLÔMBIA": "Colômbia",
+        "NED": "Holanda", "HOLANDA": "Holanda",
+        "TUR": "Turquia", "TURQUIA": "Turquia",
+        "URU": "Uruguai", "URUGUAI": "Uruguai",
+        "PAR": "Paraguai", "PARAGUAI": "Paraguai",
+        "CHI": "Chile", "CHILE": "Chile",
+        "BEL": "Bélgica", "BÉLGICA": "Bélgica",
+        "NOR": "Noruega", "NORUEGA": "Noruega",
+        "SWE": "Suécia", "SUÉCIA": "Suécia",
+        "DEN": "Dinamarca", "DINAMARCA": "Dinamarca",
+        "AUT": "Áustria", "ÁUSTRIA": "Áustria",
+        "SUI": "Suíça", "SUÍÇA": "Suíça",
+        "SCO": "Escócia", "ESCÓCIA": "Escócia",
+        "GRE": "Grécia", "GRÉCIA": "Grécia",
+    }
+    return names.get(p, str(pais or "").strip())
+
+def group_matches_by_league(matches: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Agrupa as partidas por Liga/Campeonato, garantindo que os jogos da mesma liga
+    fiquem organizados juntos em suas respectivas abas/seções.
+    """
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    for m in matches:
+        liga = m.get("liga", "").strip() or "Outras Ligas"
+        pais = m.get("pais", "").strip()
+        
+        flag = get_country_flag(pais)
+        country_name = get_country_display_name(pais)
+        
+        if country_name and country_name.lower() not in liga.lower():
+            league_key = f"{flag} {liga} ({country_name})"
+        else:
+            league_key = f"{flag} {liga}"
+            
+        if league_key not in grouped:
+            grouped[league_key] = []
+        grouped[league_key].append(m)
+        
+    # Ordena pelo número de jogos de forma decrescente
+    sorted_grouped = dict(sorted(grouped.items(), key=lambda item: (-len(item[1]), item[0])))
+    return sorted_grouped
+
+

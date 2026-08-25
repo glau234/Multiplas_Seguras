@@ -125,6 +125,10 @@ async def build_clean_vip_cache(email, password):
             }''')
             
             for m in day_matches:
+                from utils.calculations import is_brazil_serie_b
+                if is_brazil_serie_b(pais=m.get('pais', ''), liga=m.get('liga', ''), time_casa=m.get('time_casa', ''), time_visi=m.get('time_visi', '')):
+                    continue
+                    
                 k = f"{current_date}_{m['time_casa']}_{m['time_visi']}"
                 if k not in seen:
                     seen.add(k)
@@ -157,6 +161,8 @@ async def build_clean_vip_cache(email, password):
                 print("Fim das datas:", e)
                 break
                 
+        from utils.calculations import filter_out_serie_b
+        all_matches = filter_out_serie_b(all_matches)
         os.makedirs("data", exist_ok=True)
         with open("data/cached_packball.json", "w", encoding="utf-8") as f:
             json.dump(all_matches, f, indent=2, ensure_ascii=False)
