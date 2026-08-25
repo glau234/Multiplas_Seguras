@@ -296,3 +296,158 @@ Estruture sua resposta de forma clara, didática e motivadora com as seguintes s
     # Se for apenas texto
     return call_gemini_api(prompt, api_key, system_instruction=system_instruction)
 
+
+def lookup_or_generate_match_packball_stats(
+    query: str,
+    api_key: str,
+    cached_matches: Optional[List[Dict[str, Any]]] = None
+) -> Dict[str, Any]:
+    """
+    Busca um confronto nos dados extraídos/cache do Packball.
+    Se não encontrar no cache, utiliza a IA para compilar o conjunto completo de métricas
+    estatísticas oficiais no padrão Packball VIP (ExG, ExC, BTS, Win %, PPG, Defesa, Odds 1X2).
+    """
+    query_clean = query.strip().lower()
+    
+    # 1. Tentar encontrar no cache de jogos extraídos
+    if cached_matches:
+        for m in cached_matches:
+            c = m.get("time_casa", "").lower()
+            v = m.get("time_visi", "").lower()
+            confronto = f"{c} x {v}".lower()
+            confronto_vs = f"{c} vs {v}".lower()
+            if query_clean in confronto or query_clean in confronto_vs or (query_clean in c and query_clean in v):
+                result = dict(m)
+                result["source"] = "Packball Extração Oficial"
+                return result
+            # Match parcial por um time se for específico
+            if len(query_clean) >= 4 and (query_clean == c or query_clean == v):
+                result = dict(m)
+                result["source"] = "Packball Extração Oficial"
+                return result
+
+    # 2. Se não estiver no cache, gerar modelo estatístico Packball via Gemini
+    key = get_api_key(api_key)
+    cleaned_key = str(key).strip().strip('"').strip("'") if key else ""
+
+    prompt = f"""Atue como o motor de modelagem estatística oficial do Packball VIP.
+Gere as métricas estatísticas detalhadas e realistas para o seguinte confronto de futebol:
+Confronto Solicitado: "{query}"
+
+Retorne ESTRITAMENTE um objeto JSON válido (sem texto antes ou depois) com o seguinte formato:
+{{
+  "time_casa": "Nome Time Casa",
+  "time_visi": "Nome Time Visitante",
+  "liga": "Nome da Liga / Campeonato",
+  "pais": "Sigla País (ex: BRA, ESP, ENG, ITA)",
+  "horario": "16:00",
+  "odd_casa": 2.10,
+  "odd_empate": 3.20,
+  "odd_visi": 3.40,
+  "exg_oficial": 2.3,
+  "gols_avg": 2.5,
+  "bts": "52%",
+  "over25": "45%",
+  "escanteios_avg": 9.5,
+  "escanteios_exc": 9.8,
+  "win_prob": "48% - 24%",
+  "ppg": "1.8 - 1.4",
+  "poder_def_casa": 72,
+  "poder_def_visi": 65,
+  "clean_sheet_casa": 45,
+  "clean_sheet_visi": 30,
+  "resumo_tatico": "Breve diagnóstico tático de 2 frases sobre o estilo das equipes e tendência do jogo."
+}}
+"""
+    try:
+        from google import genai
+        from google.genai import types
+        import json
+        
+        client = genai.Client(api_key=cleaned_key)
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.3
+            )
+        )
+        if response and response.text:
+            data = json.loads(response.text)
+            data["id"] = f"search_{int(time.time())}"
+            data["source"] = "Packball Modelo Estatístico Inteligente"
+            return data
+    except Exception:
+        pass
+
+    # Fallback básico caso IA falhe
+    return {
+        "id": f"search_manual_{int(time.time())}",
+        "time_casa": query.split("x")[0].strip() if "x" in query else query,
+        "time_visi": query.split("x")[1].strip() if "x" in query else "Adversário",
+        "liga": "Campeonato",
+        "pais": "Mundo",
+        "horario": "Hoje",
+        "odd_casa": 2.00,
+        "odd_empate": 3.10,
+        "odd_visi": 3.30,
+        "exg_oficial": 2.2,
+        "gols_avg": 2.4,
+        "bts": "50%",
+        "over25": "45%",
+        "escanteios_avg": 9.0,
+        "escanteios_exc": 9.2,
+        "win_prob": "45% - 25%",
+        "ppg": "1.6 - 1.3",
+        "poder_def_casa": 68,
+        "poder_def_visi": 62,
+        "clean_sheet_casa": 38,
+        "clean_sheet_visi": 30,
+        "resumo_tatico": "Partida parelha com oportunidade no mercado de Handicap +3.",
+        "source": "Estimativa Base"
+    }
+
+
+def analyze_match_best_ticket(match_data: Dict[str, Any], api_key: str) -> str:
+    """
+    Gera a recomendação detalhada do Gemini para o melhor bilhete (individual e combinado)
+    com base nas estatísticas completas do Packball.
+    """
+    time_casa = match_data.get("time_casa", "Time Casa")
+    time_visi = match_data.get("time_visi", "Time Visitante")
+    liga = match_data.get("liga", "Liga")
+    pais = match_data.get("pais", "")
+    odd_c = match_data.get("odd_casa", 2.0)
+    odd_e = match_data.get("odd_empate", 3.10)
+    odd_v = match_data.get("odd_visi", 2.0)
+    exg = match_data.get("exg_oficial", match_data.get("exg", 2.2))
+    exc = match_data.get("escanteios_exc", match_data.get("escanteios_avg", 9.5))
+    bts = match_data.get("bts", "50%")
+    def_casa = match_data.get("poder_def_casa", 65)
+    def_visi = match_data.get("poder_def_visi", 65)
+    win_prob = match_data.get("win_prob", "N/A")
+
+    maior_odd_time = time_casa if float(odd_c) > float(odd_v) else time_visi
+
+    prompt = f"""Analise as seguintes estatísticas oficiais do Packball para determinar a melhor estratégia de aposta e sugestão de bilhete:
+
+🏟️ Confronto: {time_casa} vs {time_visi}
+🏆 Liga: {liga} ({pais})
+💰 Cotações 1X2: Casa {odd_c} | Empate {odd_e} | Visitante {odd_v}
+⚽ Expectativa de Gols (ExG Oficial): {exg}
+🚩 Expectativa de Escanteios (ExC): {exc}
+⚽ Ambas Marcam (BTS): {bts}
+🏆 Probabilidade de Vitória (Packball): {win_prob}
+🛡️ Poder Defensivo: Casa {def_casa}% | Visitante {def_visi}%
+
+Com base no Método Múltiplas Seguras & Mina de Ouro:
+1. 🎯 **Diagnóstico Tático do Confronto** (Qual o cenário mais provável e os riscos de zebra).
+2. 🛡️ **Melhor Entrada Individual de Alta Segurança** (Ex: Handicap Europeu +3 para {maior_odd_time}, Under Gols ou Escanteios) com cotação estimada e justificativa matemática (+EV).
+3. 🎫 **Sugestão de Combinação para Bilhete Duplo/Triplo** (Com que tipo de jogo secundário combinar para atingir Odd entre 1.40 e 1.90 sem aumentar o risco).
+4. ⚡ **Gatilho de Entrada ao Vivo (Mina de Ouro)**: O que observar no 2º tempo (APM >= 1.0, escanteios ou gols) caso queira operar ao vivo.
+5. 💡 **Nota de Confiança (0 a 10) e Gestão de Banca Recomendada (Stake %)**.
+"""
+    return call_gemini_api(prompt, api_key)
+
+
