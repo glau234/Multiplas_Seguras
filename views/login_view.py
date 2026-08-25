@@ -21,27 +21,18 @@ def render_login_view():
             st.markdown("### 🔐 Autenticação de Usuário")
             st.markdown("Insira seu e-mail e senha cadastrados para acessar a plataforma:")
 
-            email_input = st.text_input("📧 E-mail de Acesso:", value="glaucio.silveira@gmail.com", placeholder="exemplo@gmail.com", key="login_email")
+            email_input = st.text_input("📧 E-mail de Acesso:", placeholder="seu-email@gmail.com", key="login_email")
             senha_input = st.text_input("🔑 Senha:", type="password", placeholder="Digite sua senha", key="login_pass")
 
-            col_btn, col_extra = st.columns([1.5, 1])
-            with col_btn:
-                if st.button("🚀 Entrar no Sistema", type="primary", use_container_width=True):
-                    if not email_input or not senha_input:
-                        st.error("Por favor, preencha o e-mail e a senha.")
+            if st.button("🚀 Entrar no Sistema", type="primary", use_container_width=True):
+                if not email_input or not senha_input:
+                    st.error("Por favor, preencha o e-mail e a senha.")
+                else:
+                    resultado = authenticate_user(email_input, senha_input)
+                    if "error" in resultado:
+                        st.error(f"❌ {resultado['error']}")
                     else:
-                        resultado = authenticate_user(email_input, senha_input)
-                        if "error" in resultado:
-                            st.error(f"❌ {resultado['error']}")
-                        else:
-                            st.session_state["authenticated_user"] = resultado
-                            st.success(f"Bem-vindo, {resultado.get('name')}!")
-                            st.rerun()
+                        st.session_state["authenticated_user"] = resultado
+                        st.success(f"Bem-vindo, {resultado.get('name')}!")
+                        st.rerun()
 
-            st.markdown("---")
-            st.info(
-                "👑 **Acesso do Administrador Master:**\n\n"
-                "• **E-mail:** `glaucio.silveira@gmail.com`\n\n"
-                "• **Senha Padrão:** `admin123456`\n\n"
-                "*(Você pode alterar sua senha e cadastrar/excluir outros usuários a qualquer momento no menu de Admin)*"
-            )
