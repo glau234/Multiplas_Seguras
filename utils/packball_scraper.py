@@ -1,11 +1,23 @@
 import asyncio
-from playwright.async_api import async_playwright
 import time
 import json
+import os
+import concurrent.futures
+
+try:
+    from playwright.async_api import async_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    async_playwright = None
+    PLAYWRIGHT_AVAILABLE = False
 
 async def scrape_packball(email, password, num_days=7):
     matches = []
     
+    if not PLAYWRIGHT_AVAILABLE or async_playwright is None:
+        print("Playwright não instalado ou indisponível no ambiente.")
+        return []
+        
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(viewport={'width': 1280, 'height': 800})
