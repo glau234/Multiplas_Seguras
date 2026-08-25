@@ -78,3 +78,41 @@ def add_live_signal_to_history(signal_dict: Dict[str, Any]) -> bool:
     data["live_signals"].insert(0, signal_dict)
     data["live_signals"] = data["live_signals"][:50]
     return save_data(data)
+
+def get_simulated_tickets() -> list:
+    """Retorna todos os bilhetes de simulação (paper trading) salvos."""
+    data = load_data()
+    return data.get("simulated_tickets", [])
+
+def add_simulated_ticket(ticket_dict: Dict[str, Any]) -> bool:
+    """Salva um novo bilhete simulado."""
+    data = load_data()
+    if "simulated_tickets" not in data:
+        data["simulated_tickets"] = []
+    data["simulated_tickets"].insert(0, ticket_dict)
+    return save_data(data)
+
+def update_simulated_ticket(ticket_id: str, updated_fields: Dict[str, Any]) -> bool:
+    """Atualiza o status e resultado de um bilhete simulado existente."""
+    data = load_data()
+    if "simulated_tickets" in data:
+        for t in data["simulated_tickets"]:
+            if str(t.get("id")) == str(ticket_id):
+                t.update(updated_fields)
+                return save_data(data)
+    return False
+
+def delete_simulated_ticket(ticket_id: str) -> bool:
+    """Remove um bilhete simulado."""
+    data = load_data()
+    if "simulated_tickets" in data:
+        data["simulated_tickets"] = [t for t in data["simulated_tickets"] if str(t.get("id")) != str(ticket_id)]
+        return save_data(data)
+    return False
+
+def clear_simulated_tickets() -> bool:
+    """Limpa todo o histórico de bilhetes simulados."""
+    data = load_data()
+    data["simulated_tickets"] = []
+    return save_data(data)
+

@@ -12,6 +12,7 @@ from views.leverage_project import render_leverage_project
 from views.live_monitor import render_live_monitor
 from views.packball_integration import render_packball_integration
 from views.gemini_advisor import render_gemini_advisor
+from views.paper_trading import render_paper_trading
 
 # ----------------------------------------------------
 # CONFIGURAÇÃO DA PÁGINA STREAMLIT
@@ -360,6 +361,7 @@ app_mode = st.sidebar.radio(
     [
         "🔍 Analisador de Partidas", 
         "📝 Simulador de Bilhetes", 
+        "🧪 Simulador Virtual (Paper Trading)",
         "📈 Projeto de Alavancagem", 
         "🔥 Monitor Mina de Ouro (Ao Vivo)",
         "🌐 Integração Packball",
@@ -402,6 +404,7 @@ st.sidebar.markdown("### 💾 Status dos Dados Locais")
 data = load_data()
 st.sidebar.text(f"Partidas Salvas: {len(data.get('matches', []))}")
 st.sidebar.text(f"Bilhetes Armazenados: {len(data.get('tickets', []))}")
+st.sidebar.text(f"Simulações Virtuais: {len(data.get('simulated_tickets', []))}")
 st.sidebar.text(f"Sinais Ao Vivo: {len(data.get('live_signals', []))}")
 st.sidebar.text(f"Etapa Atual: {data.get('leverage_progress', {}).get('current_step', 0)} / 100")
 
@@ -413,6 +416,9 @@ if app_mode == "🔍 Analisador de Partidas":
 
 elif app_mode == "📝 Simulador de Bilhetes":
     render_ticket_simulator()
+
+elif app_mode == "🧪 Simulador Virtual (Paper Trading)":
+    render_paper_trading()
 
 elif app_mode == "📈 Projeto de Alavancagem":
     render_leverage_project()

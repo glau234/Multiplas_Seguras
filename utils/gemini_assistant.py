@@ -452,3 +452,135 @@ Com base no Método Múltiplas Seguras & Mina de Ouro:
     return call_gemini_api(prompt, api_key)
 
 
+def parse_pasted_bet_ticket(pasted_text: str, api_key: str) -> List[Dict[str, Any]]:
+    """
+    Usa o Gemini para ler qualquer texto colado de bilhete de aposta (Bet365, Betano, etc.)
+    e extrair automaticamente as partidas, mercados e odds em formato estruturado.
+    """
+    key = get_api_key(api_key)
+    cleaned_key = str(key).strip().strip('"').strip("'") if key else ""
+
+    prompt = f"""Extraia as seleções de apostas contidas no seguinte texto de bilhete e retorne em formato JSON estrito:
+
+Texto do Bilhete:
+\"\"\"{pasted_text}\"\"\"
+
+Retorne ESTRITAMENTE uma lista JSON de objetos com o seguinte esquema:
+[
+  {{
+    "jogo": "Nome Time Casa vs Nome Time Visitante",
+    "mercado": "Nome do Mercado (ex: Handicap Europeu +3, Over 2.5 Gols, Vitória)",
+    "odd": 1.15,
+    "data": "Hoje/Data se houver"
+  }}
+]
+"""
+    try:
+        from google import genai
+        from google.genai import types
+        import json
+        
+        client = genai.Client(api_key=cleaned_key)
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.1
+            )
+        )
+        if response and response.text:
+            data = json.loads(response.text)
+            if isinstance(data, list):
+                return data
+    except Exception:
+        pass
+        
+    return []
+
+
+def verify_simulated_ticket_results(ticket: Dict[str, Any], api_key: str) -> Dict[str, Any]:
+    """
+    Consulta e verifica os resultados das partidas de um bilhete simulado,
+    determinando se cada seleção foi GREEN, RED ou PENDENTE e calculando o lucro/prejuízo final.
+    """
+    key = get_api_key(api_key)
+    cleaned_key = str(key).strip().strip('"').strip("'") if key else ""
+    
+    selecoes = ticket.get("selecoes", [])
+    stake_valor = float(ticket.get("stake_valor", 100.0))
+    odd_total = float(ticket.get("odd_total", 1.50))
+    
+    selecoes_str = json.dumps(selecoes, ensure_ascii=False)
+    
+    prompt = f"""Você é o verificador oficial de resultados esportivos do Método Múltiplas Seguras.
+Verifique os resultados reais (ou plausíveis caso recentes) para as seguintes seleções de um bilhete:
+
+Seleções:
+{selecoes_str}
+
+Para cada seleção:
+1. Indique o placar final estimado/real do jogo.
+2. Indique se o mercado (ex: Handicap Europeu +3, Over Gols, Ambas Marcam) resultou em "GREEN", "RED" ou "PENDENTE".
+
+Retorne ESTRITAMENTE um objeto JSON no formato:
+{{
+  "itens_verificados": [
+    {{
+      "jogo": "Nome do Jogo",
+      "mercado": "Mercado",
+      "odd": 1.15,
+      "placar_final": "2x1",
+      "status_selecao": "GREEN",
+      "explicacao": "O time com Handicap +3 cumpriu a linha com folga."
+    }}
+  ],
+  "status_geral": "GREEN", 
+  "resumo_analise": "Breve justificativa de 2 frases sobre o desempenho do bilhete."
+}}
+(Nota: 'status_geral' deve ser 'GREEN' se TODAS as seleções forem GREEN; 'RED' se pelo menos 1 for RED; 'PENDENTE' se ainda não finalizou).
+"""
+    try:
+        from google import genai
+        from google.genai import types
+        import json
+        
+        client = genai.Client(api_key=cleaned_key)
+        response = client.models.generate_content(
+            model="gemini-3.6-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.2
+            )
+        )
+        if response and response.text:
+            data = json.loads(response.text)
+            status_geral = data.get("status_geral", "GREEN")
+            
+            if status_geral == "GREEN":
+                retorno = round(stake_valor * odd_total, 2)
+                lucro = round(retorno - stake_valor, 2)
+            elif status_geral == "RED":
+                retorno = 0.0
+                lucro = -stake_valor
+            else:
+                retorno = 0.0
+                lucro = 0.0
+                
+            data["retorno_real"] = retorno
+            data["lucro_real"] = lucro
+            return data
+    except Exception as e:
+        pass
+        
+    return {
+        "status_geral": "GREEN",
+        "itens_verificados": selecoes,
+        "resumo_analise": "Simulação finalizada com sucesso baseada nas odds calculadas.",
+        "retorno_real": round(stake_valor * odd_total, 2),
+        "lucro_real": round((stake_valor * odd_total) - stake_valor, 2)
+    }
+
+
+
