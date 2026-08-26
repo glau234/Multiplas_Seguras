@@ -164,27 +164,25 @@ async def scrape_packball(email, password, num_days=7):
                         if (customCols.length >= 11) escanteios_avg = customCols[10].innerText.trim();
                         if (customCols.length >= 12) escanteios_exc = customCols[11].innerText.trim();
                         
-                        // Retorna apenas partidas com a estrela vazada (jogos equilibrados / sem favorito ou leve favoritismo)
-                        if (is_hollow_star) {
-                            results.push({
-                                time_casa: time_casa,
-                                time_visi: time_visi,
-                                pais: pais,
-                                liga: liga,
-                                horario: horario,
-                                odd_casa: odd_casa,
-                                odd_visi: odd_visi,
-                                win_prob: win_prob,
-                                ppg: ppg,
-                                gols_avg: gols_avg,
-                                exg: exg,
-                                over25: over25,
-                                bts: bts,
-                                escanteios_avg: escanteios_avg,
-                                escanteios_exc: escanteios_exc,
-                                is_hollow_star: true
-                            });
-                        }
+                        // Adiciona todas as partidas da lista do Packball
+                        results.push({
+                            time_casa: time_casa,
+                            time_visi: time_visi,
+                            pais: pais,
+                            liga: liga,
+                            horario: horario,
+                            odd_casa: odd_casa,
+                            odd_visi: odd_visi,
+                            win_prob: win_prob,
+                            ppg: ppg,
+                            gols_avg: gols_avg,
+                            exg: exg,
+                            over25: over25,
+                            bts: bts,
+                            escanteios_avg: escanteios_avg,
+                            escanteios_exc: escanteios_exc,
+                            is_hollow_star: is_hollow_star
+                        });
                     }
                     return results;
                 }''')
