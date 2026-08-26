@@ -10,17 +10,18 @@ from utils.storage import (
 )
 from utils.gemini_assistant import (
     parse_pasted_bet_ticket, 
-    verify_simulated_ticket_results
+    verify_simulated_ticket_results,
+    analyze_match_with_gemini,
+    get_api_key
 )
 from utils.odds_comparator import compare_ticket_bookmakers
 from utils.supabase_db import is_supabase_configured
 
 def render_paper_trading():
-    st.title("🧪 Simulador Virtual & Paper Trading")
+    st.title("🧪 Simulador Virtual de Apostas (Paper Trading)")
     st.markdown(
-        "Teste estratégias e acompanhe quanto você ganharia **sem arriscar dinheiro real**. "
-        "Insira bilhetes indicados pela IA, cole bilhetes de qualquer casa ou monte combinações com quantas seleções desejar. "
-        "Depois, solicite a verificação dos resultados para acompanhar seus lucros simulados!"
+        "Teste estratégias em tempo real **sem arriscar dinheiro real**. Monte bilhetes com as odds oficiais do Packball, "
+        "defina Stakes simuladas e acompanhe a evolução do seu ROI e Green Rate."
     )
 
     if is_supabase_configured():
@@ -28,7 +29,7 @@ def render_paper_trading():
     else:
         st.info("ℹ️ **Banco de Dados:** Modo Local / Fallback (Configure SUPABASE_URL e SUPABASE_KEY no Secrets do Streamlit Cloud para gravar na nuvem)")
 
-    gemini_key = st.session_state.get("gemini_api_key", "AQ.Ab8RN6LvNVvx0BfHQbiL-_rYW3LN-DJLGChlDB36yrzkJ4ut-Q")
+    gemini_key = st.session_state.get("gemini_api_key") or get_api_key()
     simulated_tickets = get_simulated_tickets()
 
     # Métricas Globais da Carteira Simulada

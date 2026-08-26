@@ -53,3 +53,5 @@ sync_vip_cache.py
 
 # Credenciais e Variáveis de Ambiente
 .env
+gemini_key.txt
+data/gemini_key.txt

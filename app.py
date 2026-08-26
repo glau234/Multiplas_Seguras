@@ -364,26 +364,26 @@ else:
 
     # ----------------------------------------------------
     # BARRA LATERAL DE NAVEGAÇÃO E RECURSOS
-    # ----------------------------------------------------
-    st.sidebar.title("⚽ Múltiplas Seguras")
-    st.sidebar.caption("Sistema Avançado de Análise Esportiva")
+    current_user = st.session_state["authenticated_user"]
+    is_admin = current_user.get("role") == "admin"
 
-    # Card do Usuário Logado na Barra Lateral
-    user_role_label = "👑 Administrador" if is_admin else "👤 Usuário VIP"
-    with st.sidebar.container(border=True):
+    with st.sidebar:
+        st.markdown("### 👤 Usuário Logado")
         st.markdown(f"**{current_user.get('name', 'Usuário')}**")
+        user_role_label = "👑 Administrador VIP" if is_admin else "⚽ Membro VIP"
         st.caption(f"📧 `{current_user.get('email', '')}`\n\nNível: **{user_role_label}**")
         if st.button("🚪 Sair da Conta", use_container_width=True):
             st.session_state["authenticated_user"] = None
             st.rerun()
 
     menu_options = [
+        "🔮 Previsões",
+        "🌐 Integração Packball",
         "🔍 Analisador de Partidas", 
         "📝 Simulador de Bilhetes", 
         "🧪 Simulador Virtual (Paper Trading)",
         "📈 Projeto de Alavancagem", 
         "🔥 Monitor Mina de Ouro (Ao Vivo)",
-        "🌐 Integração Packball",
         "🤖 Consultor IA (Gemini)"
     ]
 
@@ -395,8 +395,9 @@ else:
     st.sidebar.markdown("---")
 
     # Configurações Gemini AI
+    from utils.gemini_assistant import get_api_key
     if "gemini_api_key" not in st.session_state or not st.session_state["gemini_api_key"]:
-        st.session_state["gemini_api_key"] = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6LvNVvx0BfHQbiL-_rYW3LN-DJLGChlDB36yrzkJ4ut-Q")
+        st.session_state["gemini_api_key"] = get_api_key() or ""
 
     with st.sidebar.expander("🤖 Configuração Gemini AI (Google)", expanded=not bool(st.session_state["gemini_api_key"])):
         gemini_key_input = st.text_input(
@@ -434,7 +435,13 @@ else:
     # ----------------------------------------------------
     # ROTEAMENTO DOS DASHBOARDS
     # ----------------------------------------------------
-    if app_mode == "🔍 Analisador de Partidas":
+    if app_mode == "🔮 Previsões":
+        render_predictions()
+
+    elif app_mode == "🌐 Integração Packball":
+        render_packball_integration()
+
+    elif app_mode == "🔍 Analisador de Partidas":
         render_match_analyzer()
 
     elif app_mode == "📝 Simulador de Bilhetes":
@@ -448,9 +455,6 @@ else:
 
     elif app_mode == "🔥 Monitor Mina de Ouro (Ao Vivo)":
         render_live_monitor()
-
-    elif app_mode == "🌐 Integração Packball":
-        render_packball_integration()
 
     elif app_mode == "🤖 Consultor IA (Gemini)":
         render_gemini_advisor()

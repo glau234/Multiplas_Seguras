@@ -3,7 +3,8 @@ from utils.gemini_assistant import (
     chat_with_gemini, 
     generate_ai_ticket_suggestions, 
     call_gemini_api,
-    analyze_user_bets_with_gemini
+    analyze_user_bets_with_gemini,
+    get_api_key
 )
 from utils.calculations import filter_out_serie_b
 
@@ -11,7 +12,7 @@ def render_gemini_advisor():
     st.title("🤖 Consultor & Auditoria IA - Google Gemini")
     st.markdown("Assistente inteligente alimentado pela IA do Google Gemini. Faça auditorias de suas apostas anteriores para identificar onde está errando, tire dúvidas e receba recomendações estratégicas.")
 
-    gemini_key = st.session_state.get("gemini_api_key", "AQ.Ab8RN6LvNVvx0BfHQbiL-_rYW3LN-DJLGChlDB36yrzkJ4ut-Q")
+    gemini_key = st.session_state.get("gemini_api_key") or get_api_key()
     packball_matches = filter_out_serie_b(st.session_state.get("packball_matches", []))
 
     # Barra de Status

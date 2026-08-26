@@ -13,8 +13,34 @@ Diretrizes do Método:
 """
 
 def get_api_key(api_key: Optional[str] = None) -> Optional[str]:
-    """Retorna a chave da API do Gemini informada ou da variável de ambiente."""
-    return api_key or os.getenv("GEMINI_API_KEY")
+    """Retorna a chave da API do Gemini informada ou do arquivo de configuração/secrets/env."""
+    if api_key and len(str(api_key).strip()) > 10 and "LvNVvx0BfHQ" not in str(api_key):
+        return str(api_key).strip()
+
+    env_key = os.getenv("GEMINI_API_KEY")
+    if env_key and len(env_key.strip()) > 10:
+        return env_key.strip()
+
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+            sec_k = str(st.secrets["GEMINI_API_KEY"]).strip()
+            if sec_k:
+                return sec_k
+    except Exception:
+        pass
+
+    try:
+        key_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "gemini_key.txt")
+        if os.path.exists(key_file):
+            with open(key_file, "r", encoding="utf-8") as f:
+                file_k = f.read().strip()
+                if file_k:
+                    return file_k
+    except Exception:
+        pass
+
+    return None
 
 def call_gemini_api(prompt: str, api_key: str, system_instruction: Optional[str] = None) -> str:
     """

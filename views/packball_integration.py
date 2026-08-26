@@ -226,7 +226,8 @@ def render_match_query_module():
         "O sistema compilará **todas as métricas oficiais do Packball** (ExG, ExC, BTS, Poder Defensivo, PPG) e o **Google Gemini** indicará a melhor entrada e combinação de bilhete."
     )
 
-    gemini_key = st.session_state.get("gemini_api_key", "AQ.Ab8RN6LvNVvx0BfHQbiL-_rYW3LN-DJLGChlDB36yrzkJ4ut-Q")
+    from utils.gemini_assistant import get_api_key
+    gemini_key = st.session_state.get("gemini_api_key") or get_api_key()
     cached_matches = st.session_state.get("packball_matches", [])
 
     # Barra de busca e sugestões
@@ -591,9 +592,8 @@ def render_match_details_page(match):
 
     # Diagnóstico com Google Gemini AI
     st.subheader("🤖 Diagnóstico Especialista com Google Gemini")
-    gemini_key = st.session_state.get("gemini_api_key", "AQ.Ab8RN6LvNVvx0BfHQbiL-_rYW3LN-DJLGChlDB36yrzkJ4ut-Q")
-    
-    from utils.gemini_assistant import analyze_match_with_gemini
+    from utils.gemini_assistant import analyze_match_with_gemini, get_api_key
+    gemini_key = st.session_state.get("gemini_api_key") or get_api_key()
     pergunta_custom = st.text_input("Deseja fazer alguma pergunta específica sobre este confronto ao Gemini?", placeholder="Ex: O Handicap +3 é seguro considerando a média de gols dos últimos 5 jogos?", key="input_ia_match")
     
     if st.button("✨ Gerar Parecer Tático com IA", use_container_width=True, key="btn_ia_match_analyze"):
