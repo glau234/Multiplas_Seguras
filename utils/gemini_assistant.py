@@ -100,9 +100,39 @@ def call_gemini_api(prompt: str, api_key: str, system_instruction: Optional[str]
     except Exception as legacy_err:
         last_error_details.append(f"SDK google-generativeai error: {str(legacy_err)}")
 
+    # 3. Fallback via REST API nativa (Zero-Dependency)
+    try:
+        import urllib.request
+        import json
+        models_rest = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest", "gemini-1.5-pro"]
+        for m_name in models_rest:
+            try:
+                rest_url = f"https://generativelanguage.googleapis.com/v1beta/models/{m_name}:generateContent?key={cleaned_key}"
+                payload = {
+                    "contents": [{"parts": [{"text": prompt}]}]
+                }
+                if system_text:
+                    payload["system_instruction"] = {"parts": [{"text": system_text}]}
+                    
+                req = urllib.request.Request(
+                    rest_url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"}
+                )
+                with urllib.request.urlopen(req, timeout=25) as resp:
+                    res = json.loads(resp.read().decode("utf-8"))
+                    candidates = res.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts and "text" in parts[0]:
+                            return parts[0]["text"]
+            except Exception as e_rest_m:
+                last_error_details.append(f"REST model {m_name}: {str(e_rest_m)}")
+    except Exception as rest_err:
+        last_error_details.append(f"REST API error: {str(rest_err)}")
+
     detalhes_str = " | ".join(last_error_details[:2]) if last_error_details else "Falha de conexão com os servidores do Google."
     return f"⚠️ **Não foi possível obter resposta do Gemini.**\n\nDetalhes técnicos: `{detalhes_str}`\n\n👉 *Dica: Verifique se sua chave no menu lateral foi copiada corretamente do [Google AI Studio](https://aistudio.google.com/).*"
-
 
 
 def analyze_match_with_gemini(match: Dict[str, Any], api_key: str, custom_question: str = "") -> str:
@@ -254,8 +284,11 @@ Estruture sua resposta de forma clara, didática e motivadora com as seguintes s
 5. 🏆 **Score de Maturidade do Apostador (0 a 100)** e os **3 Mandamentos para a sua Próxima Aposta**.
 """
 
+    last_errors = []
+
     # Se houver imagem (print do bilhete), usar multimodal
     if image_bytes:
+        # Camada 1: google-genai SDK
         try:
             from google import genai
             from google.genai import types
@@ -263,35 +296,79 @@ Estruture sua resposta de forma clara, didática e motivadora com as seguintes s
             client = genai.Client(api_key=cleaned_key)
             img_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
             
-            response = client.models.generate_content(
-                model="gemini-3.6-flash",
-                contents=[prompt, img_part],
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    temperature=0.7,
-                )
-            )
-            if response and response.text:
-                return response.text
-        except Exception as e:
-            # Fallback para outros modelos
-            try:
-                from google import genai
-                from google.genai import types
-                client = genai.Client(api_key=cleaned_key)
-                img_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
-                response = client.models.generate_content(
-                    model="gemini-flash-latest",
-                    contents=[prompt, img_part],
-                    config=types.GenerateContentConfig(
-                        system_instruction=system_instruction,
-                        temperature=0.7,
+            for m_name in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest"]:
+                try:
+                    response = client.models.generate_content(
+                        model=m_name,
+                        contents=[prompt, img_part],
+                        config=types.GenerateContentConfig(
+                            system_instruction=system_instruction,
+                            temperature=0.7,
+                        )
                     )
-                )
-                if response and response.text:
-                    return response.text
-            except Exception as e2:
-                return f"⚠️ Erro ao processar a imagem do bilhete: {str(e2)}. Tente enviar em formato PNG ou digitar o texto das apostas."
+                    if response and response.text:
+                        return response.text
+                except Exception as e_m:
+                    last_errors.append(f"GenAI {m_name}: {str(e_m)}")
+        except Exception as e_sdk1:
+            last_errors.append(f"GenAI SDK: {str(e_sdk1)}")
+
+        # Camada 2: legacy google.generativeai SDK
+        try:
+            import google.generativeai as legacy_genai
+            legacy_genai.configure(api_key=cleaned_key)
+            for m_name in ["gemini-1.5-flash", "gemini-1.5-pro"]:
+                try:
+                    model = legacy_genai.GenerativeModel(model_name=m_name)
+                    img_dict = {"mime_type": mime_type, "data": image_bytes}
+                    response = model.generate_content([system_instruction, prompt, img_dict])
+                    if response and response.text:
+                        return response.text
+                except Exception as e_m2:
+                    last_errors.append(f"Legacy {m_name}: {str(e_m2)}")
+        except Exception as e_sdk2:
+            last_errors.append(f"Legacy SDK: {str(e_sdk2)}")
+
+        # Camada 3: Direct REST API (Zero-Dependency com Base64)
+        try:
+            import urllib.request
+            import base64
+            import json
+
+            b64_img = base64.b64encode(image_bytes).decode("utf-8")
+            for m_name in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest", "gemini-1.5-pro"]:
+                try:
+                    rest_url = f"https://generativelanguage.googleapis.com/v1beta/models/{m_name}:generateContent?key={cleaned_key}"
+                    payload = {
+                        "system_instruction": {"parts": [{"text": system_instruction}]},
+                        "contents": [
+                            {
+                                "parts": [
+                                    {"text": prompt},
+                                    {"inline_data": {"mime_type": mime_type, "data": b64_img}}
+                                ]
+                            }
+                        ]
+                    }
+                    req = urllib.request.Request(
+                        rest_url,
+                        data=json.dumps(payload).encode("utf-8"),
+                        headers={"Content-Type": "application/json"}
+                    )
+                    with urllib.request.urlopen(req, timeout=30) as resp:
+                        res = json.loads(resp.read().decode("utf-8"))
+                        candidates = res.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts and "text" in parts[0]:
+                                return parts[0]["text"]
+                except Exception as e_rest_m:
+                    last_errors.append(f"REST Vision {m_name}: {str(e_rest_m)}")
+        except Exception as e_rest:
+            last_errors.append(f"REST Vision: {str(e_rest)}")
+
+        err_detail = " | ".join(last_errors[:2]) if last_errors else "Erro de comunicacao com a IA."
+        return f"⚠️ **Não foi possível processar a imagem do bilhete.**\n\nDetalhes técnicos: `{err_detail}`\n\n👉 *Dica: Verifique se sua chave no menu lateral foi copiada do Google AI Studio ou envie o texto das apostas.*"
 
     # Se for apenas texto
     return call_gemini_api(prompt, api_key, system_instruction=system_instruction)
