@@ -332,6 +332,7 @@ Estruture sua resposta de forma clara, didática e motivadora com as seguintes s
         # Camada 3: Direct REST API (Zero-Dependency com Base64)
         try:
             import urllib.request
+            import urllib.error
             import base64
             import json
 
@@ -362,12 +363,25 @@ Estruture sua resposta de forma clara, didática e motivadora com as seguintes s
                             parts = candidates[0].get("content", {}).get("parts", [])
                             if parts and "text" in parts[0]:
                                 return parts[0]["text"]
+                except urllib.error.HTTPError as http_err:
+                    err_code = http_err.code
+                    err_body = http_err.read().decode("utf-8", errors="ignore")
+                    if err_code in [400, 401] or "API_KEY_INVALID" in err_body or "not valid" in err_body:
+                        return "❌ **Chave da API do Gemini Inválida:** A chave inserida no menu lateral é inválida ou foi rejeitada pelo Google. Por favor, crie uma chave gratuita no [Google AI Studio](https://aistudio.google.com/) (ela começa com `AIzaSy...`) e cole no menu lateral à esquerda."
+                    elif err_code == 429 or "RESOURCE_EXHAUSTED" in err_body:
+                        return "⏳ **Limite de Quota Atingido:** Sua cota gratuita no Google AI Studio atingiu o limite de requisições por minuto. Aguarde 30 segundos e tente novamente."
+                    last_errors.append(f"REST HTTP {err_code}: {err_body[:100]}")
                 except Exception as e_rest_m:
                     last_errors.append(f"REST Vision {m_name}: {str(e_rest_m)}")
         except Exception as e_rest:
             last_errors.append(f"REST Vision: {str(e_rest)}")
 
-        err_detail = " | ".join(last_errors[:2]) if last_errors else "Erro de comunicacao com a IA."
+        # Verifica se alguma camada capturou erro de chave ou quota
+        all_err_str = " | ".join(last_errors).lower()
+        if "api_key_invalid" in all_err_str or "not valid" in all_err_str or "400" in all_err_str or "401" in all_err_str:
+            return "❌ **Chave da API do Gemini Inválida:** A chave de API inserida no menu lateral é inválida ou foi rejeitada pelo Google. Obtenha uma chave gratuita no [Google AI Studio](https://aistudio.google.com/) (geralmente começa com `AIzaSy...`) e cole no menu lateral."
+
+        err_detail = " | ".join(last_errors[:2]) if last_errors else "Erro de comunicação com a IA."
         return f"⚠️ **Não foi possível processar a imagem do bilhete.**\n\nDetalhes técnicos: `{err_detail}`\n\n👉 *Dica: Verifique se sua chave no menu lateral foi copiada do Google AI Studio ou envie o texto das apostas.*"
 
     # Se for apenas texto
