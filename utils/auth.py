@@ -37,14 +37,72 @@ def ensure_users_file():
             json.dump(default_admins, f, ensure_ascii=False, indent=2)
 
 def load_users() -> List[Dict[str, Any]]:
-    """Carrega todos os usuários cadastrados."""
+    """Carrega todos os usuários cadastrados (do arquivo JSON local e do Streamlit Secrets em produção)."""
     ensure_users_file()
+    users = []
     try:
-        with open(USERS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+        if os.path.exists(USERS_FILE):
+            with open(USERS_FILE, "r", encoding="utf-8") as f:
+                users = json.load(f)
     except Exception as e:
-        print(f"Erro ao carregar usuários: {e}")
-        return []
+        print(f"Erro ao carregar usuários do JSON: {e}")
+        users = []
+
+    # Suporte a credenciais via Streamlit Secrets (st.secrets) no ambiente de produção do Streamlit Cloud
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets"):
+            # 1. Suporte a ADMIN_EMAIL e ADMIN_PASSWORD no Secrets
+            if "ADMIN_EMAIL" in st.secrets and "ADMIN_PASSWORD" in st.secrets:
+                sec_email = str(st.secrets["ADMIN_EMAIL"]).strip().lower()
+                sec_pass = str(st.secrets["ADMIN_PASSWORD"]).strip()
+                
+                matched = False
+                for u in users:
+                    if u.get("email", "").strip().lower() == sec_email:
+                        u["password_hash"] = hash_password(sec_pass)
+                        u["active"] = True
+                        matched = True
+                        break
+                        
+                if not matched:
+                    users.append({
+                        "name": "Administrador (Secrets)",
+                        "email": sec_email,
+                        "password_hash": hash_password(sec_pass),
+                        "role": "admin",
+                        "active": True,
+                        "created_at": time.strftime("%d/%m/%Y %H:%M")
+                    })
+                    
+            # 2. Suporte a lista USERS no Secrets
+            if "USERS" in st.secrets:
+                sec_users = st.secrets["USERS"]
+                if isinstance(sec_users, list):
+                    for su in sec_users:
+                        s_email = str(su.get("email", "")).strip().lower()
+                        s_pass = str(su.get("password", "")).strip()
+                        if s_email and s_pass:
+                            matched = False
+                            for u in users:
+                                if u.get("email", "").strip().lower() == s_email:
+                                    u["password_hash"] = hash_password(s_pass)
+                                    u["active"] = True
+                                    matched = True
+                                    break
+                            if not matched:
+                                users.append({
+                                    "name": su.get("name", s_email.split("@")[0]),
+                                    "email": s_email,
+                                    "password_hash": hash_password(s_pass),
+                                    "role": su.get("role", "user"),
+                                    "active": True,
+                                    "created_at": time.strftime("%d/%m/%Y %H:%M")
+                                })
+    except Exception as e:
+        print(f"Nota: st.secrets não configurado ou indisponível: {e}")
+
+    return users
 
 def save_users(users: List[Dict[str, Any]]) -> bool:
     """Salva a lista de usuários no arquivo JSON."""

@@ -1,12 +1,16 @@
 import streamlit as st
 import time
+import os
+import json
 from utils.packball_scraper import fetch_packball_matches
 from utils.calculations import (
     calculate_xg_and_defense, 
     calculate_team_corners, 
     filter_out_serie_b, 
     group_matches_by_league,
-    get_country_flag
+    get_country_flag,
+    sort_matches_by_datetime,
+    filter_matches_by_datetime
 )
 from utils.gemini_assistant import (
     lookup_or_generate_match_packball_stats,
@@ -15,6 +19,17 @@ from utils.gemini_assistant import (
 from utils.odds_comparator import render_bookmaker_comparison_card
 
 def render_packball_integration():
+    # Auto-carregamento do cache caso ainda não exista na sessão
+    if "packball_matches" not in st.session_state:
+        if os.path.exists("data/cached_packball.json"):
+            try:
+                with open("data/cached_packball.json", "r", encoding="utf-8") as f:
+                    cached = json.load(f)
+                    if cached and len(cached) > 0:
+                        st.session_state["packball_matches"] = cached
+            except Exception:
+                pass
+
     # Se houver um jogo selecionado para visualização completa em página dedicada
     selected_match = st.session_state.get("selected_packball_match", None)
     if selected_match:
@@ -48,6 +63,35 @@ def render_packball_integration():
             filtro_max_exg = st.slider("ExG Máximo da Partida (Packball):", min_value=1.50, max_value=4.50, value=3.20, step=0.1, help="Partidas com menor ExG favorecem o Handicap +3 e mercados Under.")
             filtro_max_diff = st.slider("Diferença Máxima de Odds (Equilíbrio):", min_value=0.50, max_value=3.50, value=2.50, step=0.1, help="Garante que as partidas sejam parelhas e equilibradas.")
             
+            st.markdown("#### 📅 Cronograma & Horários dos Jogos")
+            available_dates = ["Todas as Datas"]
+            if "packball_matches" in st.session_state:
+                raw_dates = [str(m.get("data", "")).strip() for m in st.session_state["packball_matches"] if m.get("data")]
+                unique_dates = list(dict.fromkeys(raw_dates))
+                available_dates.extend(unique_dates)
+
+            filtro_data_selecionada = st.selectbox(
+                "📅 Filtrar por Data do Jogo:",
+                options=available_dates,
+                index=0,
+                help="Filtra a lista exibindo apenas partidas da data escolhida."
+            )
+
+            filtro_hora_range = st.slider(
+                "⏰ Intervalo de Horário das Partidas:",
+                min_value=0,
+                max_value=23,
+                value=(0, 23),
+                format="%d:00 h",
+                help="Filtra as partidas que iniciam dentro do intervalo de horas configurado."
+            )
+
+            ordem_crescente = st.checkbox(
+                "⬆️ Ordenar por Data e Hora (Crescente)",
+                value=True,
+                help="Organiza todas as partidas do jogo mais cedo ao jogo mais tardio de forma cronológica crescente."
+            )
+
             st.info("🛡️ **Critério Ativo de Segurança:** Partidas da **Série B do Campeonato Brasileiro** são excluídas automaticamente da extração.")
             
             if st.button(f"🚀 Iniciar Extração Oficial VIP ({num_dias} Dias)", use_container_width=True):
@@ -84,6 +128,17 @@ def render_packball_integration():
             if "packball_matches" in st.session_state:
                 raw_stored_matches = st.session_state["packball_matches"]
                 matches = filter_out_serie_b(raw_stored_matches)
+                
+                # Aplica o filtro de Data e Hora
+                matches = filter_matches_by_datetime(
+                    matches,
+                    selected_date=filtro_data_selecionada,
+                    hora_inicio=filtro_hora_range[0],
+                    hora_fim=filtro_hora_range[1]
+                )
+                
+                # Aplica a ordenação por Data e Hora de forma crescente (se ativada)
+                matches = sort_matches_by_datetime(matches, ascending=ordem_crescente)
                 
                 if not matches:
                     st.info("Nenhuma partida encontrada após a aplicação dos filtros.")
@@ -138,6 +193,7 @@ def render_packball_integration():
                     for idx_tab, (league_name, league_matches) in enumerate(grouped_by_league.items(), start=1):
                         with tabs[idx_tab]:
                             render_league_section(league_name, league_matches, filtro_max_diff, filtro_max_exg, f"tab_{idx_tab}")
+
             else:
                 st.info("👈 Insira suas credenciais VIP ao lado e clique em **Iniciar Extração** para carregar os confrontos organizados por ligas.")
 
@@ -327,7 +383,10 @@ def render_match_card(match, idx, tab_key, filtro_max_diff, filtro_max_exg):
         col_header1, col_header2 = st.columns([3, 1])
         with col_header1:
             st.markdown(f"#### ⚽ {match['time_casa']} vs {match['time_visi']}")
-            st.caption(f"🏆 {match.get('liga', '')} ({match.get('pais', '')}) &nbsp;|&nbsp; ⏰ {match.get('horario', '')}")
+            data_str = match.get("data", "")
+            horario_str = match.get("horario", "")
+            data_hora_text = f"📅 {data_str} &nbsp;|&nbsp; ⏰ {horario_str}" if data_str else f"⏰ {horario_str}"
+            st.caption(f"🏆 {match.get('liga', '')} ({match.get('pais', '')}) &nbsp;|&nbsp; {data_hora_text}")
         with col_header2:
             st.markdown(f"<div style='text-align: right; font-weight: 700;'>{status_badge}</div>", unsafe_allow_html=True)
             

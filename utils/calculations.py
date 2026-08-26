@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+import re
+from datetime import datetime, timedelta
 from typing import Tuple, List, Dict, Any
 
 def calculate_implied_probability(odd: float) -> float:
@@ -304,10 +306,104 @@ def get_country_display_name(pais: str) -> str:
     }
     return names.get(p, str(pais or "").strip())
 
+def parse_match_datetime(data_str: Any, horario_str: Any) -> datetime:
+    """
+    Converte strings de data (ex: '25/8 Tue', '25/08', 'Hoje', 'Dia 1') e 
+    horário (ex: '16:00', '15:45') em um objeto datetime para ordenação cronológica precisa.
+    """
+    now = datetime.now()
+    year = now.year
+    month = now.month
+    day = now.day
+    
+    # 1. Parse do Horário
+    hour, minute = 0, 0
+    if horario_str:
+        time_match = re.search(r'(\d{1,2}):(\d{2})', str(horario_str))
+        if time_match:
+            hour = int(time_match.group(1))
+            minute = int(time_match.group(2))
+            
+    # 2. Parse da Data
+    if not data_str:
+        return datetime(year, month, day, hour, minute)
+        
+    ds = str(data_str).strip().lower()
+    
+    if "hoje" in ds:
+        pass
+    elif "amanhã" in ds or "amanha" in ds:
+        tomorrow = now + timedelta(days=1)
+        year, month, day = tomorrow.year, tomorrow.month, tomorrow.day
+    elif ds.startswith("dia "):
+        try:
+            day_offset = int(ds.replace("dia ", "").strip()) - 1
+            offset_date = now + timedelta(days=max(0, day_offset))
+            year, month, day = offset_date.year, offset_date.month, offset_date.day
+        except ValueError:
+            pass
+    else:
+        iso_match = re.search(r'(\d{4})-(\d{1,2})-(\d{1,2})', ds)
+        if iso_match:
+            year = int(iso_match.group(1))
+            month = int(iso_match.group(2))
+            day = int(iso_match.group(3))
+        else:
+            dm_match = re.search(r'(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?', ds)
+            if dm_match:
+                day = int(dm_match.group(1))
+                month = int(dm_match.group(2))
+                if dm_match.group(3):
+                    yr = int(dm_match.group(3))
+                    year = yr if yr > 100 else 2000 + yr
+                else:
+                    if month < now.month - 2:
+                        year = now.year + 1
+                    else:
+                        year = now.year
+
+    try:
+        return datetime(year, month, day, hour, minute)
+    except ValueError:
+        return datetime(now.year, now.month, now.day, hour, minute)
+
+def sort_matches_by_datetime(matches: List[Dict[str, Any]], ascending: bool = True) -> List[Dict[str, Any]]:
+    """Ordena uma lista de partidas por Data e Hora de forma crescente (ou decrescente)."""
+    return sorted(
+        matches, 
+        key=lambda m: parse_match_datetime(m.get("data", ""), m.get("horario", "")), 
+        reverse=not ascending
+    )
+
+def filter_matches_by_datetime(
+    matches: List[Dict[str, Any]], 
+    selected_date: str = "Todas", 
+    hora_inicio: int = 0, 
+    hora_fim: int = 23
+) -> List[Dict[str, Any]]:
+    """Filtra partidas por data específica e por intervalo de horas."""
+    filtered = []
+    for m in matches:
+        m_date_str = str(m.get("data", "")).strip()
+        dt = parse_match_datetime(m.get("data", ""), m.get("horario", ""))
+        
+        # Filtro de Data
+        if selected_date and selected_date != "Todas":
+            if m_date_str != selected_date:
+                continue
+                
+        # Filtro de Hora
+        if not (hora_inicio <= dt.hour <= hora_fim):
+            continue
+            
+        filtered.append(m)
+        
+    return filtered
+
 def group_matches_by_league(matches: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """
     Agrupa as partidas por Liga/Campeonato, garantindo que os jogos da mesma liga
-    fiquem organizados juntos em suas respectivas abas/seções.
+    fiquem organizados juntos em suas respectivas abas/seções, ordenados por data/hora crescente.
     """
     grouped: Dict[str, List[Dict[str, Any]]] = {}
     for m in matches:
@@ -326,8 +422,13 @@ def group_matches_by_league(matches: List[Dict[str, Any]]) -> Dict[str, List[Dic
             grouped[league_key] = []
         grouped[league_key].append(m)
         
-    # Ordena pelo número de jogos de forma decrescente
+    # Ordena as partidas dentro de cada liga por data e hora crescente
+    for l_key in grouped:
+        grouped[l_key] = sort_matches_by_datetime(grouped[l_key], ascending=True)
+        
+    # Ordena as ligas pelo número de jogos de forma decrescente
     sorted_grouped = dict(sorted(grouped.items(), key=lambda item: (-len(item[1]), item[0])))
     return sorted_grouped
+
 
 
