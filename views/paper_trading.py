@@ -13,6 +13,7 @@ from utils.gemini_assistant import (
     verify_simulated_ticket_results
 )
 from utils.odds_comparator import compare_ticket_bookmakers
+from utils.supabase_db import is_supabase_configured
 
 def render_paper_trading():
     st.title("🧪 Simulador Virtual & Paper Trading")
@@ -21,6 +22,11 @@ def render_paper_trading():
         "Insira bilhetes indicados pela IA, cole bilhetes de qualquer casa ou monte combinações com quantas seleções desejar. "
         "Depois, solicite a verificação dos resultados para acompanhar seus lucros simulados!"
     )
+
+    if is_supabase_configured():
+        st.success("🟢 **Banco de Dados:** Conectado ao Supabase (Persistência Permanente na Nuvem Ativa)")
+    else:
+        st.info("ℹ️ **Banco de Dados:** Modo Local / Fallback (Configure SUPABASE_URL e SUPABASE_KEY no Secrets do Streamlit Cloud para gravar na nuvem)")
 
     gemini_key = st.session_state.get("gemini_api_key", "AQ.Ab8RN6LvNVvx0BfHQbiL-_rYW3LN-DJLGChlDB36yrzkJ4ut-Q")
     simulated_tickets = get_simulated_tickets()
