@@ -127,18 +127,30 @@ def render_predictions():
     stored_matches = st.session_state.get("packball_matches", [])
     clean_matches = filter_out_past_matches(filter_out_serie_b(stored_matches))
 
-    # Lista de ligas para o filtro
+    # Lista de todas as ligas encontradas nas partidas
     all_leagues = sorted(list(dict.fromkeys(m.get("liga", "Geral") for m in clean_matches if m.get("liga"))))
-    
-    col_f1, col_f2, col_f3 = st.columns([2, 1.2, 1.2])
+
+    # Inicializar ligas favoritas em session_state se necessário
+    DEFAULT_FAVORITE_KEYWORDS = ["Champions", "Europa", "Premier", "La Liga", "Serie A", "Bundesliga", "Ligue 1", "Brasil", "Copa"]
+    default_favs = [
+        l for l in all_leagues 
+        if any(kw.lower() in l.lower() for kw in DEFAULT_FAVORITE_KEYWORDS)
+    ]
+    if not default_favs:
+        default_favs = all_leagues[:8] if len(all_leagues) >= 8 else all_leagues
+
+    if "user_favorite_leagues" not in st.session_state or not st.session_state["user_favorite_leagues"]:
+        st.session_state["user_favorite_leagues"] = default_favs
+
+    col_f1, col_f2, col_f3 = st.columns([2, 1.5, 1])
     with col_f1:
         search_term = st.text_input("🔎 Buscar Time ou Campeonato:", placeholder="Ex: Real Madrid, Lyon, Champions League...")
     with col_f2:
         selected_leagues = st.multiselect(
-            "🏆 Ligas (Minhas Ligas):",
+            "🏆 Minhas Ligas (Filtro Ativo):",
             options=all_leagues,
-            default=[],
-            help="Deixe em branco para exibir TODAS AS LIGAS ou selecione campeonatos específicos."
+            default=[l for l in st.session_state["user_favorite_leagues"] if l in all_leagues],
+            help="Selecione as ligas desejadas. O painel exibirá apenas partidas das ligas marcadas."
         )
     with col_f3:
         available_dates = ["Todas as Datas"] + sorted(list(dict.fromkeys(str(m.get("data", "")).strip() for m in clean_matches if m.get("data"))))
@@ -147,7 +159,22 @@ def render_predictions():
             options=available_dates
         )
 
-    # Filtrar partidas
+    # Botões rápidos para alternar ligas
+    col_b1, col_b2, col_b3 = st.columns([1.5, 1.5, 2])
+    with col_b1:
+        if st.button("🌐 Selecionar Todas as Ligas", use_container_width=True, key="btn_sel_all_leagues"):
+            st.session_state["user_favorite_leagues"] = all_leagues
+            st.rerun()
+    with col_b2:
+        if st.button("🏆 Apenas Minhas Ligas Favoritas", use_container_width=True, key="btn_sel_fav_leagues"):
+            st.session_state["user_favorite_leagues"] = default_favs
+            st.rerun()
+    with col_b3:
+        if st.button("💾 Salvar Seleção como Minhas Ligas", use_container_width=True, key="btn_save_fav_leagues"):
+            st.session_state["user_favorite_leagues"] = selected_leagues
+            st.toast("✅ Preferências de Minhas Ligas salvas com sucesso!", icon="🏆")
+
+    # Filtrar partidas estritamente pelas ligas selecionadas
     filtered_matches = clean_matches
     if search_term.strip():
         sterm = search_term.strip().lower()
@@ -159,9 +186,12 @@ def render_predictions():
                sterm in m.get("pais", "").lower()
         ]
 
+    # Filtro estrito por ligas selecionadas no multiselect
     if selected_leagues:
         filtered_matches = [m for m in filtered_matches if m.get("liga") in selected_leagues]
-        
+    else:
+        filtered_matches = []
+
     if filter_date != "Todas as Datas":
         filtered_matches = [m for m in filtered_matches if str(m.get("data", "")).strip() == filter_date]
 
