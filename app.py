@@ -15,6 +15,7 @@ from views.gemini_advisor import render_gemini_advisor
 from views.paper_trading import render_paper_trading
 from views.login_view import render_login_view
 from views.admin_management import render_admin_management
+from views.predictions import render_predictions
 
 # ----------------------------------------------------
 # CONFIGURAÇÃO DA PÁGINA STREAMLIT
@@ -364,9 +365,6 @@ else:
 
     # ----------------------------------------------------
     # BARRA LATERAL DE NAVEGAÇÃO E RECURSOS
-    current_user = st.session_state["authenticated_user"]
-    is_admin = current_user.get("role") == "admin"
-
     with st.sidebar:
         st.markdown("### 👤 Usuário Logado")
         st.markdown(f"**{current_user.get('name', 'Usuário')}**")
