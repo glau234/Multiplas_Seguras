@@ -377,19 +377,23 @@ def sort_matches_by_datetime(matches: List[Dict[str, Any]], ascending: bool = Tr
 
 def filter_matches_by_datetime(
     matches: List[Dict[str, Any]], 
-    selected_date: str = "Todas", 
+    selected_date: str = "Todas as Datas", 
     hora_inicio: int = 0, 
     hora_fim: int = 23
 ) -> List[Dict[str, Any]]:
     """Filtra partidas por data específica e por intervalo de horas."""
     filtered = []
+    
+    # Verifica se a opção selecionada é "Todas as Datas" ou "Todas"
+    is_all_dates = not selected_date or "todas" in str(selected_date).strip().lower()
+    
     for m in matches:
         m_date_str = str(m.get("data", "")).strip()
         dt = parse_match_datetime(m.get("data", ""), m.get("horario", ""))
         
-        # Filtro de Data
-        if selected_date and selected_date != "Todas":
-            if m_date_str != selected_date:
+        # Filtro de Data (se não for "Todas as Datas")
+        if not is_all_dates:
+            if m_date_str != str(selected_date).strip():
                 continue
                 
         # Filtro de Hora
