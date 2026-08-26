@@ -62,35 +62,6 @@ def render_packball_integration():
             st.markdown("#### 🎯 Filtros Estatísticos (Packball Nativo)")
             filtro_max_exg = st.slider("ExG Máximo da Partida (Packball):", min_value=1.50, max_value=4.50, value=3.20, step=0.1, help="Partidas com menor ExG favorecem o Handicap +3 e mercados Under.")
             filtro_max_diff = st.slider("Diferença Máxima de Odds (Equilíbrio):", min_value=0.50, max_value=3.50, value=2.50, step=0.1, help="Garante que as partidas sejam parelhas e equilibradas.")
-            
-            st.markdown("#### 📅 Cronograma & Horários dos Jogos")
-            available_dates = ["Todas as Datas"]
-            if "packball_matches" in st.session_state:
-                raw_dates = [str(m.get("data", "")).strip() for m in st.session_state["packball_matches"] if m.get("data")]
-                unique_dates = list(dict.fromkeys(raw_dates))
-                available_dates.extend(unique_dates)
-
-            filtro_data_selecionada = st.selectbox(
-                "📅 Filtrar por Data do Jogo:",
-                options=available_dates,
-                index=0,
-                help="Filtra a lista exibindo apenas partidas da data escolhida."
-            )
-
-            filtro_hora_range = st.slider(
-                "⏰ Intervalo de Horário das Partidas:",
-                min_value=0,
-                max_value=23,
-                value=(0, 23),
-                format="%d:00 h",
-                help="Filtra as partidas que iniciam dentro do intervalo de horas configurado."
-            )
-
-            ordem_crescente = st.checkbox(
-                "⬆️ Ordenar por Data e Hora (Crescente)",
-                value=True,
-                help="Organiza todas as partidas do jogo mais cedo ao jogo mais tardio de forma cronológica crescente."
-            )
 
             st.info("🛡️ **Critério Ativo de Segurança:** Partidas da **Série B do Campeonato Brasileiro** são excluídas automaticamente da extração.")
             
@@ -129,6 +100,41 @@ def render_packball_integration():
                 raw_stored_matches = st.session_state["packball_matches"]
                 matches = filter_out_serie_b(raw_stored_matches)
                 
+                # ====================================================
+                # FILTROS DE DATA, HORA E ORDENAÇÃO (DIRETO NO PAINEL)
+                # ====================================================
+                available_dates = ["Todas as Datas"]
+                raw_dates = [str(m.get("data", "")).strip() for m in raw_stored_matches if m.get("data")]
+                unique_dates = list(dict.fromkeys(raw_dates))
+                available_dates.extend(unique_dates)
+
+                with st.expander("📅 ⏰ **Filtros por Data, Horário & Ordenação Cronológica**", expanded=True):
+                    f_col1, f_col2, f_col3 = st.columns([1.5, 2, 1.2])
+                    with f_col1:
+                        filtro_data_selecionada = st.selectbox(
+                            "📅 Filtrar por Data:",
+                            options=available_dates,
+                            index=0,
+                            key="p_filter_date"
+                        )
+                    with f_col2:
+                        filtro_hora_range = st.slider(
+                            "⏰ Intervalo de Horário:",
+                            min_value=0,
+                            max_value=23,
+                            value=(0, 23),
+                            format="%d:00 h",
+                            key="p_filter_time"
+                        )
+                    with f_col3:
+                        st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+                        ordem_crescente = st.checkbox(
+                            "⬆️ Ordem Crescente",
+                            value=True,
+                            key="p_order_asc",
+                            help="Organiza todas as partidas do jogo mais cedo ao jogo mais tardio de forma cronológica crescente."
+                        )
+
                 # Aplica o filtro de Data e Hora
                 matches = filter_matches_by_datetime(
                     matches,
