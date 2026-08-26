@@ -19,7 +19,18 @@ async def scrape_packball(email, password, num_days=7):
         return []
         
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        try:
+            browser = await p.chromium.launch(headless=True)
+        except Exception as e_launch:
+            print(f"Instalando navegador Chromium do Playwright no ambiente... ({e_launch})")
+            import subprocess
+            try:
+                subprocess.run(["playwright", "install", "chromium"], check=False)
+                browser = await p.chromium.launch(headless=True)
+            except Exception as e_retry:
+                print(f"Falha ao iniciar Chromium: {e_retry}")
+                return []
+
         context = await browser.new_context(viewport={'width': 1280, 'height': 800})
         page = await context.new_page()
         

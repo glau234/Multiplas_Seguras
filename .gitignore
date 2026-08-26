@@ -36,6 +36,8 @@ wheels/
 *.webp
 *.html
 *.txt
+!requirements.txt
+!packages.txt
 scratch*.py
 debug*.py
 inspect*.py
