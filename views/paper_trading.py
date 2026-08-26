@@ -1,5 +1,6 @@
 import streamlit as st
 import time
+import random
 from utils.storage import (
     get_simulated_tickets, 
     add_simulated_ticket, 
