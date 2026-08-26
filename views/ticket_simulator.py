@@ -39,10 +39,18 @@ def render_ticket_simulator():
 
     jogos_simultaneos = st.checkbox("⚠️ Algumas das seleções ocorrem no mesmo horário/dia?", value=False)
     
-    # Importação do Packball
+    # Importação do Packball e Gestão de Jogos no Bilhete
     packball_matches = st.session_state.get("packball_approved_matches", [])
+    
     if packball_matches:
-        st.info(f"📥 {len(packball_matches)} jogo(s) aprovado(s) importado(s) da Integração Packball!")
+        col_hdr1, col_hdr2 = st.columns([3, 1])
+        with col_hdr1:
+            st.info(f"📥 **{len(packball_matches)} jogo(s)** no bilhete simulado!")
+        with col_hdr2:
+            if st.button("🗑️ Limpar Bilhete", key="btn_clear_all_ticket", use_container_width=True):
+                st.session_state["packball_approved_matches"] = []
+                st.toast("Todos os jogos foram removidos do bilhete.", icon="🗑️")
+                st.rerun()
         default_num_jogos = min(len(packball_matches), 10)
     else:
         default_num_jogos = 2
@@ -70,19 +78,31 @@ def render_ticket_simulator():
             def_odd = p_match.get("odd", def_odd)
 
         with cols[col_idx]:
-            st.markdown(f"#### ⚽ Seleção {i+1}")
-            jogo = st.text_input(f"Partida {i+1}:", def_jogo, key=f"jg_{i}")
-            horario = st.text_input(f"Dia/Horário {i+1}:", def_hr, key=f"hr_{i}")
-            selecao_nome = st.text_input(f"Entrada {i+1}:", def_sel, key=f"sl_{i}")
-            odd = st.number_input(f"Odd {i+1}:", min_value=1.01, value=float(def_odd), step=0.01, key=f"od_{i}")
-            
-            odds_lista.append(odd)
-            selecoes.append({
-                "jogo": jogo,
-                "horario": horario,
-                "selecao": selecao_nome,
-                "odd": odd
-            })
+            with st.container(border=True):
+                c_sel_t, c_sel_del = st.columns([3, 1])
+                with c_sel_t:
+                    st.markdown(f"#### ⚽ Seleção {i+1}")
+                with c_sel_del:
+                    if st.button("🗑️", key=f"btn_del_match_{i}", help=f"Remover esta Seleção {i+1} do bilhete"):
+                        if "packball_approved_matches" in st.session_state and i < len(st.session_state["packball_approved_matches"]):
+                            removed = st.session_state["packball_approved_matches"].pop(i)
+                            st.toast(f"Removido: {removed.get('jogo', 'Jogo')}", icon="🗑️")
+                        else:
+                            st.toast(f"Seleção {i+1} removida.", icon="🗑️")
+                        st.rerun()
+
+                jogo = st.text_input(f"Partida {i+1}:", def_jogo, key=f"jg_{i}")
+                horario = st.text_input(f"Dia/Horário {i+1}:", def_hr, key=f"hr_{i}")
+                selecao_nome = st.text_input(f"Entrada {i+1}:", def_sel, key=f"sl_{i}")
+                odd = st.number_input(f"Odd {i+1}:", min_value=1.01, value=float(def_odd), step=0.01, key=f"od_{i}")
+                
+                odds_lista.append(odd)
+                selecoes.append({
+                    "jogo": jogo,
+                    "horario": horario,
+                    "selecao": selecao_nome,
+                    "odd": odd
+                })
 
     odd_total = calculate_total_odd(odds_lista)
     retorno_bruto = round(valor_aposta * odd_total, 2)
