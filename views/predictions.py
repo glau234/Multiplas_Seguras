@@ -225,10 +225,58 @@ def render_predictions():
 
             df_pred = pd.DataFrame(table_rows)
 
+            with st.expander("ℹ️ Legenda & Significado de Cada Coluna (Passe o mouse sobre os cabeçalhos para ver)", expanded=False):
+                st.markdown("""
+                - **🎯 BEST (Mercado Recomendado):** A entrada de maior valor esperado (+EV) recomendada pelo algoritmo do Packball.
+                - **📊 Prob H2H (%):** Assertividade histórica e percentual de acerto do confronto direto entre as duas equipes.
+                - **% Algoritmo (%):** Probabilidade matemática de ocorrência da aposta calculada pelos modelos do Packball.
+                - **💰 Odd:** Cotação justa estimada no mercado de apostas.
+                - **📈 EV (Expected Value):** Índice de Valor Esperado. Valores acima de **1.00** indicam margem de lucro positiva no longo prazo.
+                - **⚡ ⚽+ EV Net:** Score final de retorno líquido esperado considerando a relação risco x retorno.
+                """)
+
             st.dataframe(
                 df_pred.drop(columns=["ID"]),
                 use_container_width=True,
-                height=450
+                height=450,
+                column_config={
+                    "País/Liga": st.column_config.TextColumn(
+                        "País/Liga", 
+                        help="País e campeonato oficial do confronto no Packball."
+                    ),
+                    "Hora": st.column_config.TextColumn(
+                        "Hora", 
+                        help="Horário exato do início da partida."
+                    ),
+                    "Confronto": st.column_config.TextColumn(
+                        "Confronto", 
+                        help="Time da Casa vs Time Visitante."
+                    ),
+                    "BEST (Mercado Recomendado)": st.column_config.TextColumn(
+                        "BEST (Mercado Recomendado)", 
+                        help="🎯 BEST: Mercado e entrada principal recomendada pelo algoritmo do Packball VIP."
+                    ),
+                    "📊 Prob H2H": st.column_config.TextColumn(
+                        "📊 Prob H2H", 
+                        help="📊 Prob H2H (%): Porcentagem de assertividade histórica e retrospecto direto entre os times (Head to Head)."
+                    ),
+                    "% Algoritmo": st.column_config.TextColumn(
+                        "% Algoritmo", 
+                        help="% Algoritmo (%): Probabilidade percentual de sucesso calculada pelo algoritmo estatístico."
+                    ),
+                    "Odd": st.column_config.TextColumn(
+                        "Odd", 
+                        help="💰 Odd: Cotação justa de mercado estimada para a entrada indicada."
+                    ),
+                    "EV": st.column_config.TextColumn(
+                        "EV", 
+                        help="📈 EV (Expected Value): Valor Esperado da aposta. Índices > 1.00 possuem valor positivo (+EV) no longo prazo."
+                    ),
+                    "⚽+ EV Net": st.column_config.TextColumn(
+                        "⚽+ EV Net", 
+                        help="⚡ EV Net: Rating final e nota de retorno líquido esperado ajustado pelo risco."
+                    )
+                }
             )
 
             # Ações Rápidas
