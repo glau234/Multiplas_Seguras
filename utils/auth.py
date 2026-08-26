@@ -36,23 +36,40 @@ def ensure_users_file():
         with open(USERS_FILE, "w", encoding="utf-8") as f:
             json.dump(default_admins, f, ensure_ascii=False, indent=2)
 
+from utils.supabase_db import (
+    is_supabase_configured,
+    sp_load_users,
+    sp_save_user,
+    sp_update_user_password,
+    sp_toggle_user_status,
+    sp_delete_user
+)
+
 def load_users() -> List[Dict[str, Any]]:
-    """Carrega todos os usuários cadastrados (do arquivo JSON local e do Streamlit Secrets em produção)."""
+    """Carrega todos os usuários cadastrados (do Supabase, arquivo JSON local e Streamlit Secrets em produção)."""
     ensure_users_file()
     users = []
-    try:
-        if os.path.exists(USERS_FILE):
-            with open(USERS_FILE, "r", encoding="utf-8") as f:
-                users = json.load(f)
-    except Exception as e:
-        print(f"Erro ao carregar usuários do JSON: {e}")
-        users = []
+    
+    # 1. Tenta carregar do Supabase se configurado
+    if is_supabase_configured():
+        sp_users = sp_load_users()
+        if sp_users is not None and len(sp_users) > 0:
+            users = sp_users
 
-    # Suporte a credenciais via Streamlit Secrets (st.secrets) no ambiente de produção do Streamlit Cloud
+    # 2. Fallback / Leitura do JSON local se o Supabase não tiver retornado
+    if not users:
+        try:
+            if os.path.exists(USERS_FILE):
+                with open(USERS_FILE, "r", encoding="utf-8") as f:
+                    users = json.load(f)
+        except Exception as e:
+            print(f"Erro ao carregar usuários do JSON: {e}")
+            users = []
+
+    # 3. Suporte a credenciais via Streamlit Secrets (st.secrets)
     try:
         import streamlit as st
         if hasattr(st, "secrets"):
-            # 1. Suporte a ADMIN_EMAIL e ADMIN_PASSWORD no Secrets
             if "ADMIN_EMAIL" in st.secrets and "ADMIN_PASSWORD" in st.secrets:
                 sec_email = str(st.secrets["ADMIN_EMAIL"]).strip().lower()
                 sec_pass = str(st.secrets["ADMIN_PASSWORD"]).strip()
@@ -75,7 +92,6 @@ def load_users() -> List[Dict[str, Any]]:
                         "created_at": time.strftime("%d/%m/%Y %H:%M")
                     })
                     
-            # 2. Suporte a lista USERS no Secrets
             if "USERS" in st.secrets:
                 sec_users = st.secrets["USERS"]
                 if isinstance(sec_users, list):
@@ -137,7 +153,6 @@ def register_user(name: str, email: str, password: str, role: str = "user") -> D
     users = load_users()
     email_clean = email.strip().lower()
 
-    # Verifica se já existe
     for u in users:
         if u.get("email", "").strip().lower() == email_clean:
             return {"success": False, "message": f"O e-mail '{email_clean}' já está cadastrado."}
@@ -151,22 +166,27 @@ def register_user(name: str, email: str, password: str, role: str = "user") -> D
         "created_at": time.strftime("%d/%m/%Y %H:%M")
     }
 
+    if is_supabase_configured():
+        sp_save_user(novo_usuario)
+
     users.append(novo_usuario)
     if save_users(users):
         return {"success": True, "message": f"Usuário '{name}' cadastrado com sucesso!"}
     return {"success": False, "message": "Erro ao salvar no banco de dados."}
 
 def delete_user(email: str) -> bool:
-    """Exclui um usuário pelo e-mail (não permite excluir o último admin)."""
+    """Exclui um usuário pelo e-mail."""
     users = load_users()
     email_clean = email.strip().lower()
     
-    # Previne exclusão se for o único admin
     admins = [u for u in users if u.get("role") == "admin" and u.get("active", True)]
     user_to_del = next((u for u in users if u.get("email", "").strip().lower() == email_clean), None)
     
     if user_to_del and user_to_del.get("role") == "admin" and len(admins) <= 1:
         return False
+
+    if is_supabase_configured():
+        sp_delete_user(email_clean)
 
     users = [u for u in users if u.get("email", "").strip().lower() != email_clean]
     return save_users(users)
@@ -177,7 +197,10 @@ def toggle_user_status(email: str) -> bool:
     email_clean = email.strip().lower()
     for u in users:
         if u.get("email", "").strip().lower() == email_clean:
-            u["active"] = not u.get("active", True)
+            new_status = not u.get("active", True)
+            u["active"] = new_status
+            if is_supabase_configured():
+                sp_toggle_user_status(email_clean, new_status)
             return save_users(users)
     return False
 
@@ -185,8 +208,11 @@ def update_user_password(email: str, new_password: str) -> bool:
     """Atualiza a senha de um usuário."""
     users = load_users()
     email_clean = email.strip().lower()
+    new_hash = hash_password(new_password.strip())
     for u in users:
         if u.get("email", "").strip().lower() == email_clean:
-            u["password_hash"] = hash_password(new_password.strip())
+            u["password_hash"] = new_hash
+            if is_supabase_configured():
+                sp_update_user_password(email_clean, new_hash)
             return save_users(users)
     return False

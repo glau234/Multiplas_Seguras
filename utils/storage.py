@@ -1,6 +1,16 @@
 import json
 import os
-from typing import Dict, Any
+from typing import Dict, Any, List
+from utils.supabase_db import (
+    is_supabase_configured,
+    sp_get_simulated_tickets,
+    sp_add_simulated_ticket,
+    sp_update_simulated_ticket,
+    sp_delete_simulated_ticket,
+    sp_clear_simulated_tickets,
+    sp_add_ticket,
+    sp_get_tickets
+)
 
 DATA_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "history.json")
 
@@ -17,7 +27,8 @@ def ensure_data_file():
                 "target_bankroll": 1378061.0,
                 "history": []
             },
-            "live_signals": []
+            "live_signals": [],
+            "simulated_tickets": []
         }
         save_data(initial_data)
 
@@ -33,7 +44,8 @@ def load_data() -> Dict[str, Any]:
             "matches": [],
             "tickets": [],
             "leverage_progress": {"current_step": 0, "current_bankroll": 100.0, "target_bankroll": 1378061.0, "history": []},
-            "live_signals": []
+            "live_signals": [],
+            "simulated_tickets": []
         }
 
 def save_data(data: Dict[str, Any]) -> bool:
@@ -50,12 +62,15 @@ def save_data(data: Dict[str, Any]) -> bool:
 def add_match_to_history(match_dict: Dict[str, Any]) -> bool:
     """Adiciona uma partida analisada ao histórico."""
     data = load_data()
-    data["matches"].insert(0, match_dict)  # Insere no topo
-    data["matches"] = data["matches"][:50]  # Limita aos últimos 50
+    data["matches"].insert(0, match_dict)
+    data["matches"] = data["matches"][:50]
     return save_data(data)
 
 def add_ticket_to_history(ticket_dict: Dict[str, Any]) -> bool:
-    """Adiciona um bilhete gerado ao histórico."""
+    """Adiciona um bilhete gerado ao histórico (salva no Supabase e no JSON)."""
+    if is_supabase_configured():
+        sp_add_ticket(ticket_dict)
+        
     data = load_data()
     data["tickets"].insert(0, ticket_dict)
     data["tickets"] = data["tickets"][:50]
@@ -79,39 +94,63 @@ def add_live_signal_to_history(signal_dict: Dict[str, Any]) -> bool:
     data["live_signals"] = data["live_signals"][:50]
     return save_data(data)
 
+# ====================================================
+# GESTÃO DE BILHETES SIMULADOS (PAPER TRADING / SUPABASE)
+# ====================================================
+
 def get_simulated_tickets() -> list:
-    """Retorna todos os bilhetes de simulação (paper trading) salvos."""
+    """Retorna todos os bilhetes de simulação (paper trading) salvos no Supabase ou no JSON local."""
+    if is_supabase_configured():
+        sp_tickets = sp_get_simulated_tickets()
+        if sp_tickets is not None:
+            return sp_tickets
+
     data = load_data()
     return data.get("simulated_tickets", [])
 
 def add_simulated_ticket(ticket_dict: Dict[str, Any]) -> bool:
-    """Salva um novo bilhete simulado."""
+    """Salva um novo bilhete simulado (no Supabase e no JSON local)."""
+    saved_sp = False
+    if is_supabase_configured():
+        saved_sp = sp_add_simulated_ticket(ticket_dict)
+
     data = load_data()
     if "simulated_tickets" not in data:
         data["simulated_tickets"] = []
     data["simulated_tickets"].insert(0, ticket_dict)
-    return save_data(data)
+    saved_json = save_data(data)
+
+    return saved_sp or saved_json
 
 def update_simulated_ticket(ticket_id: str, updated_fields: Dict[str, Any]) -> bool:
-    """Atualiza o status e resultado de um bilhete simulado existente."""
+    """Atualiza o status e resultado de um bilhete simulado existente (no Supabase e no JSON local)."""
+    if is_supabase_configured():
+        sp_update_simulated_ticket(ticket_id, updated_fields)
+
     data = load_data()
     if "simulated_tickets" in data:
         for t in data["simulated_tickets"]:
             if str(t.get("id")) == str(ticket_id):
                 t.update(updated_fields)
                 return save_data(data)
-    return False
+    return True
 
 def delete_simulated_ticket(ticket_id: str) -> bool:
-    """Remove um bilhete simulado."""
+    """Remove um bilhete simulado (do Supabase e do JSON local)."""
+    if is_supabase_configured():
+        sp_delete_simulated_ticket(ticket_id)
+
     data = load_data()
     if "simulated_tickets" in data:
         data["simulated_tickets"] = [t for t in data["simulated_tickets"] if str(t.get("id")) != str(ticket_id)]
         return save_data(data)
-    return False
+    return True
 
 def clear_simulated_tickets() -> bool:
-    """Limpa todo o histórico de bilhetes simulados."""
+    """Limpa todo o histórico de bilhetes simulados (no Supabase e no JSON local)."""
+    if is_supabase_configured():
+        sp_clear_simulated_tickets()
+
     data = load_data()
     data["simulated_tickets"] = []
     return save_data(data)
