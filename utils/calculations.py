@@ -400,6 +400,22 @@ def filter_matches_by_datetime(
         
     return filtered
 
+def filter_out_past_matches(matches: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Filtra e remove partidas cujas datas sejam anteriores à data atual (hoje).
+    Garante que apenas partidas a partir da data de consulta (hoje em diante) sejam mantidas.
+    """
+    today_date = datetime.now().date()
+    future_matches = []
+    
+    for m in matches:
+        dt = parse_match_datetime(m.get("data", ""), m.get("horario", ""))
+        # Mantém apenas partidas de hoje em diante
+        if dt.date() >= today_date:
+            future_matches.append(m)
+            
+    return future_matches
+
 def group_matches_by_league(matches: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
     """
     Agrupa as partidas por Liga/Campeonato, garantindo que os jogos da mesma liga

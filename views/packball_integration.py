@@ -7,6 +7,7 @@ from utils.calculations import (
     calculate_xg_and_defense, 
     calculate_team_corners, 
     filter_out_serie_b, 
+    filter_out_past_matches,
     group_matches_by_league,
     get_country_flag,
     sort_matches_by_datetime,
@@ -19,14 +20,14 @@ from utils.gemini_assistant import (
 from utils.odds_comparator import render_bookmaker_comparison_card
 
 def render_packball_integration():
-    # Auto-carregamento do cache caso ainda não exista na sessão
+    # Auto-carregamento do cache caso ainda não exista na sessão (filtrando jogos passados)
     if "packball_matches" not in st.session_state:
         if os.path.exists("data/cached_packball.json"):
             try:
                 with open("data/cached_packball.json", "r", encoding="utf-8") as f:
                     cached = json.load(f)
                     if cached and len(cached) > 0:
-                        st.session_state["packball_matches"] = cached
+                        st.session_state["packball_matches"] = filter_out_past_matches(cached)
             except Exception:
                 pass
 
@@ -63,7 +64,7 @@ def render_packball_integration():
             filtro_max_exg = st.slider("ExG Máximo da Partida (Packball):", min_value=1.50, max_value=4.50, value=3.20, step=0.1, help="Partidas com menor ExG favorecem o Handicap +3 e mercados Under.")
             filtro_max_diff = st.slider("Diferença Máxima de Odds (Equilíbrio):", min_value=0.50, max_value=3.50, value=2.50, step=0.1, help="Garante que as partidas sejam parelhas e equilibradas.")
 
-            st.info("🛡️ **Critério Ativo de Segurança:** Partidas da **Série B do Campeonato Brasileiro** são excluídas automaticamente da extração.")
+            st.info("🛡️ **Critério Ativo de Segurança:** Partidas da **Série B do Campeonato Brasileiro** e partidas com **datas anteriores a hoje** são excluídas automaticamente da extração.")
             
             if st.button(f"🚀 Iniciar Extração Oficial VIP ({num_dias} Dias)", use_container_width=True):
                 if not username or not password:
@@ -75,7 +76,7 @@ def render_packball_integration():
                         if raw_matches and isinstance(raw_matches, dict) and "error" in raw_matches:
                             st.error(raw_matches.get("error", "Erro desconhecido ao extrair dados."))
                         elif raw_matches:
-                            clean_matches = filter_out_serie_b(raw_matches)
+                            clean_matches = filter_out_past_matches(filter_out_serie_b(raw_matches))
                             
                             enriched_matches = []
                             for m in clean_matches:
@@ -98,13 +99,13 @@ def render_packball_integration():
             
             if "packball_matches" in st.session_state:
                 raw_stored_matches = st.session_state["packball_matches"]
-                matches = filter_out_serie_b(raw_stored_matches)
+                matches = filter_out_past_matches(filter_out_serie_b(raw_stored_matches))
                 
                 # ====================================================
                 # FILTROS DE DATA, HORA E ORDENAÇÃO (DIRETO NO PAINEL)
                 # ====================================================
                 available_dates = ["Todas as Datas"]
-                raw_dates = [str(m.get("data", "")).strip() for m in raw_stored_matches if m.get("data")]
+                raw_dates = [str(m.get("data", "")).strip() for m in matches if m.get("data")]
                 unique_dates = list(dict.fromkeys(raw_dates))
                 available_dates.extend(unique_dates)
 

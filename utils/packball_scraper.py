@@ -221,8 +221,9 @@ def fetch_packball_matches(username, password, num_days=7):
         print(f"Aviso no Playwright: {e}")
         
     if isinstance(res, list) and len(res) > 0:
-        from utils.calculations import filter_out_serie_b
+        from utils.calculations import filter_out_serie_b, filter_out_past_matches
         res = filter_out_serie_b(res)
+        res = filter_out_past_matches(res)
         try:
             os.makedirs("data", exist_ok=True)
             with open("data/cached_packball.json", "w", encoding="utf-8") as f:
@@ -237,8 +238,8 @@ def fetch_packball_matches(username, password, num_days=7):
             with open("data/cached_packball.json", "r", encoding="utf-8") as f:
                 cached = json.load(f)
                 if cached and len(cached) > 0:
-                    from utils.calculations import filter_out_serie_b
-                    return filter_out_serie_b(cached)
+                    from utils.calculations import filter_out_serie_b, filter_out_past_matches
+                    return filter_out_past_matches(filter_out_serie_b(cached))
     except Exception:
         pass
         
