@@ -11,13 +11,17 @@ def compute_best_market_prediction(match):
     (BEST, Prob H2H, Prob Algoritmo, Odd, EV, EV Net).
     """
     if match.get("best_market") and str(match.get("best_market")).strip():
+        odd_b = match.get("odd_best", 1.50)
+        ev_b = match.get("ev", 1.25)
+        ev_n = match.get("ev_net", 0.45)
+        
         return {
             "best": match.get("best_market"),
             "prob_h2h": match.get("prob_h2h", "80%"),
             "prob_algo": match.get("prob_algo", "85%"),
-            "odd": match.get("odd_best", 1.50),
-            "ev": match.get("ev", 1.25),
-            "ev_net": match.get("ev_net", 0.45)
+            "odd": f"{float(odd_b):.2f}" if isinstance(odd_b, (int, float)) else str(odd_b),
+            "ev": f"{float(ev_b):.2f}" if isinstance(ev_b, (int, float)) else str(ev_b),
+            "ev_net": f"{float(ev_n):.2f}" if isinstance(ev_n, (int, float)) else str(ev_n)
         }
 
     try:
@@ -33,19 +37,10 @@ def compute_best_market_prediction(match):
     except Exception:
         exg_val = 2.5
 
-    try:
-        esc_str = str(match.get("escanteios_avg", "8.5")).replace("N/A", "8.5")
-        esc_avg = float(esc_str) if esc_str.replace('.', '', 1).isdigit() else 8.5
-    except Exception:
-        esc_avg = 8.5
-
     time_casa = match.get("time_casa", "Casa")
     time_visi = match.get("time_visi", "Visitante")
-    underdog = time_casa if odd_c > odd_v else time_visi
     fav = time_casa if odd_c <= odd_v else time_visi
-    diff_odd = abs(odd_c - odd_v)
 
-    # Variação de entradas baseada nas estatísticas do confronto (Fidelidade ao Packball)
     match_hash = abs(hash(f"{time_casa}_{time_visi}")) % 6
 
     if match_hash == 0:
@@ -106,23 +101,22 @@ def compute_best_market_prediction(match):
 def render_predictions():
     st.title("🔮 Previsões do Dia (Packball VIP & Gemini IA)")
     st.markdown(
-        "Confira **todas as partidas e previsões oficiais de valor (+EV)** do Packball VIP. "
+        "Confira as **partidas e previsões oficiais de valor (+EV)** da sua conta Packball VIP. "
         "Acompanhe as colunas exatas do site (BEST, % H2H, % Algoritmo, Odd, EV, EV Net), consulte o **Gemini IA** "
         "e envie qualquer aposta diretamente para o seu **Simulador de Bilhetes**."
     )
 
     gemini_key = st.session_state.get("gemini_api_key") or get_api_key()
 
-    # Obter partidas da sessão ou do arquivo de cache
-    if "packball_matches" not in st.session_state or not st.session_state["packball_matches"]:
-        import os, json
-        if os.path.exists("data/cached_packball.json"):
-            try:
-                with open("data/cached_packball.json", "r", encoding="utf-8") as f:
-                    cached_raw = json.load(f)
-                    st.session_state["packball_matches"] = filter_out_past_matches(filter_out_serie_b(cached_raw))
-            except Exception:
-                st.session_state["packball_matches"] = []
+    # Sempre recarrega do arquivo de cache para garantir sincronia com os jogos exatos
+    import os, json
+    if os.path.exists("data/cached_packball.json"):
+        try:
+            with open("data/cached_packball.json", "r", encoding="utf-8") as f:
+                cached_raw = json.load(f)
+                st.session_state["packball_matches"] = filter_out_past_matches(filter_out_serie_b(cached_raw))
+        except Exception:
+            pass
 
     stored_matches = st.session_state.get("packball_matches", [])
     clean_matches = filter_out_past_matches(filter_out_serie_b(stored_matches))
@@ -130,14 +124,11 @@ def render_predictions():
     # Lista de todas as ligas encontradas nas partidas
     all_leagues = sorted(list(dict.fromkeys(m.get("liga", "Geral") for m in clean_matches if m.get("liga"))))
 
-    # Inicializar ligas favoritas em session_state se necessário
-    DEFAULT_FAVORITE_KEYWORDS = ["Champions", "Europa", "Premier", "La Liga", "Serie A", "Bundesliga", "Ligue 1", "Brasil", "Copa"]
-    default_favs = [
-        l for l in all_leagues 
-        if any(kw.lower() in l.lower() for kw in DEFAULT_FAVORITE_KEYWORDS)
-    ]
+    # Ligas padrão correspondentes ao Minhas Ligas do Packball do usuário
+    PACKBALL_USER_FAVORITES = ["Champions League", "La Liga", "Europa Conference League", "Copa do Brasil"]
+    default_favs = [l for l in all_leagues if l in PACKBALL_USER_FAVORITES]
     if not default_favs:
-        default_favs = all_leagues[:8] if len(all_leagues) >= 8 else all_leagues
+        default_favs = all_leagues
 
     if "user_favorite_leagues" not in st.session_state or not st.session_state["user_favorite_leagues"]:
         st.session_state["user_favorite_leagues"] = default_favs
@@ -153,7 +144,9 @@ def render_predictions():
             help="Selecione as ligas desejadas. O painel exibirá apenas partidas das ligas marcadas."
         )
     with col_f3:
-        available_dates = ["Todas as Datas"] + sorted(list(dict.fromkeys(str(m.get("data", "")).strip() for m in clean_matches if m.get("data"))))
+        available_dates = sorted(list(dict.fromkeys(str(m.get("data", "")).strip() for m in clean_matches if m.get("data"))))
+        if "Todas as Datas" not in available_dates:
+            available_dates = ["Todas as Datas"] + available_dates
         filter_date = st.selectbox(
             "📅 Data:",
             options=available_dates
@@ -198,7 +191,7 @@ def render_predictions():
     st.markdown("---")
 
     if not filtered_matches:
-        st.info("💡 Nenhum jogo encontrado para os filtros selecionados. Altere a busca ou selecione outra data/liga acima.")
+        st.info("💡 Nenhum jogo encontrado para os filtros selecionados. Altere a busca ou clique em '🌐 Selecionar Todas as Ligas'.")
     else:
         # Seletor de Modo de Exibição
         view_mode = st.radio(
@@ -207,11 +200,11 @@ def render_predictions():
             horizontal=True
         )
 
-        st.subheader(f"📊 {len(filtered_matches)} Previsões Carregadas (Todas as Partidas)")
+        st.subheader(f"📊 {len(filtered_matches)} Previsão(ões) Encontrada(s) em Minhas Ligas")
 
         if view_mode.startswith("📊"):
             # ----------------------------------------------------
-            # VISÃO TABELA OFICIAL PACKBALL (TODAS AS COLUNAS E JOGOS)
+            # VISÃO TABELA OFICIAL PACKBALL (EXATAMENTE COMO NO SITE DO PACKBALL)
             # ----------------------------------------------------
             table_rows = []
             for idx, match in enumerate(filtered_matches):
@@ -235,11 +228,11 @@ def render_predictions():
             st.dataframe(
                 df_pred.drop(columns=["ID"]),
                 use_container_width=True,
-                height=520
+                height=450
             )
 
             # Ações Rápidas
-            st.markdown("##### ⚡ Ações Rápidas para o Confronto Selecionado")
+            st.markdown("##### ⚡ Ações Rápidas para a Partida Selecionada")
             col_sel1, col_sel2 = st.columns([2, 1])
             with col_sel1:
                 selected_match_label = st.selectbox(
@@ -285,9 +278,6 @@ def render_predictions():
             # ----------------------------------------------------
             for idx, match in enumerate(filtered_matches):
                 pred = compute_best_market_prediction(match)
-                odd_c = match.get("odd_casa", 2.0)
-                odd_e = match.get("odd_empate", 3.10)
-                odd_v = match.get("odd_visi", 2.0)
                 
                 data_str = match.get("data", "")
                 horario_str = match.get("horario", "")
