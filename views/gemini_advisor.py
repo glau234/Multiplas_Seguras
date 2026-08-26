@@ -57,7 +57,7 @@ def render_gemini_advisor():
 
             if uploaded_file is not None:
                 if uploaded_file.type.startswith("image/"):
-                    st.image(uploaded_file, caption="📸 Imagem do Bilhete Anexada", use_column_width=True)
+                    st.image(uploaded_file, caption="📸 Imagem do Bilhete Anexada", use_container_width=True)
                 else:
                     st.info(f"📄 Arquivo anexado: **{uploaded_file.name}** ({uploaded_file.size} bytes)")
 
