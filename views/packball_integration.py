@@ -181,13 +181,17 @@ def render_packball_integration():
                                 transformed_aprovados = []
                                 for m in todos_aprovados:
                                     maior_odd_time = m['time_casa'] if m.get('odd_casa', 1.0) > m.get('odd_visi', 1.0) else m['time_visi']
+                                    d_str = m.get("data", "Hoje")
+                                    h_str = m.get("horario", "")
+                                    dh_str = f"{d_str} {h_str}".strip() if h_str and h_str not in d_str else d_str
                                     transformed_aprovados.append({
                                         "id": m.get("id", str(time.time())),
                                         "jogo": f"{m['time_casa']} vs {m['time_visi']}",
                                         "mercado": f"Handicap Europeu +3 ({maior_odd_time})",
                                         "odd": 1.15,
                                         "status": "Pendente",
-                                        "data": m.get("data", "Hoje"),
+                                        "data": dh_str,
+                                        "horario": h_str,
                                         "liga": m.get("liga", "")
                                     })
                                 if "packball_approved_matches" not in st.session_state:
@@ -353,13 +357,17 @@ def render_match_query_module():
             if st.button("➕ Adicionar Jogo ao Simulador de Bilhetes", use_container_width=True):
                 if "packball_approved_matches" not in st.session_state:
                     st.session_state["packball_approved_matches"] = []
+                d_str = queried_match.get("data", "Hoje")
+                h_str = queried_match.get("horario", "")
+                dh_str = f"{d_str} {h_str}".strip() if h_str and h_str not in d_str else d_str
                 st.session_state["packball_approved_matches"].append({
                     "id": queried_match.get("id", str(time.time())),
                     "jogo": f"{t_casa} vs {t_visi}",
                     "mercado": f"Handicap Europeu +3 ({maior_odd_time})",
                     "odd": 1.15,
                     "status": "Pendente",
-                    "data": queried_match.get("data", "Hoje"),
+                    "data": dh_str,
+                    "horario": h_str,
                     "liga": liga
                 })
                 st.success(f"✅ Partida **{t_casa} vs {t_visi}** adicionada ao Simulador de Bilhetes!")
@@ -416,13 +424,17 @@ def render_match_card(match, idx, tab_key, filtro_max_diff, filtro_max_exg):
                 if "packball_approved_matches" not in st.session_state:
                     st.session_state["packball_approved_matches"] = []
                 maior_odd_time = match['time_casa'] if odd_c > odd_v else match['time_visi']
+                d_str = match.get("data", "Hoje")
+                h_str = match.get("horario", "")
+                dh_str = f"{d_str} {h_str}".strip() if h_str and h_str not in d_str else d_str
                 st.session_state["packball_approved_matches"].append({
                     "id": match.get("id", str(time.time())),
                     "jogo": f"{match['time_casa']} vs {match['time_visi']}",
                     "mercado": f"Handicap Europeu +3 ({maior_odd_time})",
                     "odd": 1.15,
                     "status": "Pendente",
-                    "data": match.get("data", "Hoje"),
+                    "data": dh_str,
+                    "horario": h_str,
                     "liga": match.get("liga", "")
                 })
                 st.toast(f"Adicionado: {match['time_casa']} vs {match['time_visi']}", icon="✅")
@@ -449,13 +461,17 @@ def render_league_section(league_title, league_matches, filtro_max_diff, filtro_
                     
                     for m in aprovados_liga:
                         maior_odd_time = m['time_casa'] if m.get('odd_casa', 1.0) > m.get('odd_visi', 1.0) else m['time_visi']
+                        d_str = m.get("data", "Hoje")
+                        h_str = m.get("horario", "")
+                        dh_str = f"{d_str} {h_str}".strip() if h_str and h_str not in d_str else d_str
                         st.session_state["packball_approved_matches"].append({
                             "id": m.get("id", str(time.time())),
                             "jogo": f"{m['time_casa']} vs {m['time_visi']}",
                             "mercado": f"Handicap Europeu +3 ({maior_odd_time})",
                             "odd": 1.15,
                             "status": "Pendente",
-                            "data": m.get("data", "Hoje"),
+                            "data": dh_str,
+                            "horario": h_str,
                             "liga": m.get("liga", "")
                         })
                     st.success(f"✅ {len(aprovados_liga)} jogo(s) de {league_title} enviados para o Simulador!")

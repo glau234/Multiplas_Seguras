@@ -73,7 +73,14 @@ def render_ticket_simulator():
         if i < len(packball_matches):
             p_match = packball_matches[i]
             def_jogo = p_match.get("jogo", def_jogo)
-            def_hr = p_match.get("data", def_hr)
+            
+            d_val = str(p_match.get("data", "")).strip()
+            h_val = str(p_match.get("horario", "")).strip()
+            if h_val and h_val not in d_val:
+                def_hr = f"{d_val} {h_val}".strip() if d_val else h_val
+            else:
+                def_hr = d_val if d_val else def_hr
+
             def_sel = p_match.get("mercado", def_sel)
             def_odd = p_match.get("odd", def_odd)
 
