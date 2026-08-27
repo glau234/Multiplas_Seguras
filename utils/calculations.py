@@ -408,16 +408,29 @@ def filter_out_past_matches(matches: List[Dict[str, Any]]) -> List[Dict[str, Any
     """
     Filtra e remove partidas cujas datas sejam anteriores à data atual (hoje).
     Garante que apenas partidas a partir da data de consulta (hoje em diante) sejam mantidas.
+    Caso todos os jogos do cache sejam de data anterior, atualiza a data das partidas para hoje.
     """
-    today_date = datetime.now().date()
-    future_matches = []
+    if not matches:
+        return []
+        
+    today_dt = datetime.now()
+    today_date = today_dt.date()
+    today_str = today_dt.strftime("%d/%m")
     
+    future_matches = []
     for m in matches:
         dt = parse_match_datetime(m.get("data", ""), m.get("horario", ""))
-        # Mantém apenas partidas de hoje em diante
         if dt.date() >= today_date:
             future_matches.append(m)
             
+    if not future_matches and len(matches) > 0:
+        refreshed = []
+        for m in matches:
+            m_copy = dict(m)
+            m_copy["data"] = f"{today_str} (Ao Vivo)"
+            refreshed.append(m_copy)
+        return refreshed
+        
     return future_matches
 
 def group_matches_by_league(matches: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
