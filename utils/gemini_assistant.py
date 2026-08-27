@@ -385,6 +385,44 @@ Estruture sua resposta de forma clara, didática e motivadora com as seguintes s
     return call_gemini_api(prompt, api_key, system_instruction=system_instruction)
 
 
+def generate_ideal_reconstructed_ticket(
+    audit_report: str,
+    original_text: str = "",
+    api_key: str = "",
+    style: str = "ideal"
+) -> str:
+    """
+    Gera um bilhete de aposta ideal reestruturado (Dupla ou Tripla Segura) com base nas partidas
+    auditadas do bilhete do usuário, aplicando o Método Múltiplas Seguras.
+    """
+    prompt = f"""Com base no relatório de auditoria e nas apostas enviadas a seguir:
+
+{audit_report[:2500]}
+
+{f'Dados Originais: {original_text[:1000]}' if original_text else ''}
+
+Sua missão é reestruturar esse bilhete montando a versão IDEAL e SEGURA de acordo com o Método Múltiplas Seguras.
+
+Diretrizes Obrigatórias:
+1. Monte um bilhete no formato DUPLA OU TRIPLA SEGURA (máximo 2 a 3 seleções).
+2. Odd final combinada entre 1.40 e 2.20 (Odd de valor justo e alta probabilidade).
+3. Utilize mercados de altíssima proteção (ex: Handicap Europeu +3 no Underdog se ExG <= 2.40, Dupla Hipótese, ou Over 1.5 Gols no jogo todo).
+4. Elimine completamente apostas secas arriscadas e acumuladas longas.
+
+Estruture sua resposta de forma visual e clara:
+### 🎫 BILHETE IDEAL REESTRUTURADO (MÉTODO MÚLTIPLAS SEGURAS)
+
+*   **Partida 1:** [Time A vs Time B] — **Mercado Recomendado:** [Mercado] @[Odd]
+*   **Partida 2:** [Time C vs Time D] — **Mercado Recomendado:** [Mercado] @[Odd]
+*   *(Se houver 3ª)* **Partida 3:** [Time E vs Time F] — **Mercado Recomendado:** [Mercado] @[Odd]
+
+💰 **Odd Total Combinada:** @[Odd Total]
+📊 **Stake Recomendada:** 3% a 5% da Banca (ex: R$ 30,00 a R$ 50,00)
+🛡️ **Por que este bilhete é muito mais seguro?** (Explicação matemática da proteção de banca).
+"""
+    return call_gemini_api(prompt, api_key)
+
+
 def lookup_or_generate_match_packball_stats(
     query: str,
     api_key: str,

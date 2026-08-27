@@ -1,9 +1,11 @@
 import streamlit as st
+import time
 from utils.gemini_assistant import (
     chat_with_gemini, 
     generate_ai_ticket_suggestions, 
     call_gemini_api,
     analyze_user_bets_with_gemini,
+    generate_ideal_reconstructed_ticket,
     get_api_key
 )
 from utils.calculations import filter_out_serie_b
@@ -23,17 +25,15 @@ def render_gemini_advisor():
         status_ia = "🟢 Conectado" if gemini_key else "🔴 Sem Chave"
         st.metric("Status da API Gemini", status_ia)
     with col_stat3:
-        if st.button("🗑️ Limpar Sessão IA", use_container_width=True):
-            st.session_state["gemini_chat_history"] = []
-            st.session_state["bet_audit_result"] = None
-            st.rerun()
+        mode = "Com Visão (Imagens)" if gemini_key else "Básico"
+        st.metric("Modo da IA", mode)
 
     st.markdown("---")
 
     # Abas Principais do Consultor IA
     tab_audit, tab_chat = st.tabs([
-        "📊 Auditoria de Apostas & Raio-X de Erros", 
-        "💬 Chat Estratégico & Sugestões de Bilhetes"
+        "🔍 Auditoria de Apostas & Raio-X", 
+        "💬 Chat com Assistente Especialista"
     ])
 
     # ----------------------------------------------------
@@ -111,10 +111,12 @@ Resultado: Empate 2x2 (RED)"""
         with col_act2:
             if st.button("🧹 Nova Auditoria", use_container_width=True, key="btn_clear_ticket_audit"):
                 st.session_state["bet_audit_result"] = None
+                st.session_state["ideal_ticket_result"] = None
                 st.rerun()
 
         if run_audit:
             st.session_state["bet_audit_result"] = None
+            st.session_state["ideal_ticket_result"] = None
             if not uploaded_file and not manual_text.strip():
                 st.error("⚠️ Por favor, envie uma imagem/arquivo do bilhete OU digite o texto das suas apostas para análise.")
             else:
@@ -154,6 +156,65 @@ Resultado: Empate 2x2 (RED)"""
             with st.container(border=True):
                 st.markdown("## 🧠 Relatório de Auditoria & Inteligência Estratégica")
                 st.markdown(st.session_state["bet_audit_result"])
+
+                st.markdown("---")
+                st.markdown("### 🎟️ Transformar em Bilhete Ideal")
+                st.caption("Solicite à IA que reestruture os jogos auditados acima em uma Dupla ou Tripla Segura (Método Múltiplas Seguras).")
+
+                col_rec1, col_rec2 = st.columns(2)
+                with col_rec1:
+                    if st.button("🎟️ Montar Bilhete Ideal (Dupla/Tripla Segura)", use_container_width=True, key="btn_gen_ideal_ticket"):
+                        with st.spinner("🤖 O Gemini está selecionando as melhores entradas e calculando a Odd Ideal..."):
+                            res_ideal = generate_ideal_reconstructed_ticket(
+                                audit_report=st.session_state["bet_audit_result"],
+                                original_text=manual_text,
+                                api_key=gemini_key,
+                                style="ideal"
+                            )
+                            st.session_state["ideal_ticket_result"] = res_ideal
+                            st.rerun()
+
+                with col_rec2:
+                    if st.button("🛡️ Montar Bilhete Super Protegido (Handicap +3)", use_container_width=True, key="btn_gen_protected_ticket"):
+                        with st.spinner("🤖 O Gemini está aplicando proteção de Handicap Europeu +3..."):
+                            res_ideal = generate_ideal_reconstructed_ticket(
+                                audit_report=st.session_state["bet_audit_result"],
+                                original_text=manual_text,
+                                api_key=gemini_key,
+                                style="handicap"
+                            )
+                            st.session_state["ideal_ticket_result"] = res_ideal
+                            st.rerun()
+
+        # Exibição do Bilhete Ideal Sugerido pela IA
+        if st.session_state.get("ideal_ticket_result"):
+            st.markdown("---")
+            with st.container(border=True):
+                st.markdown("## 🎫 Bilhete Ideal Reestruturado (Pronto para Apostar)")
+                st.markdown(st.session_state["ideal_ticket_result"])
+
+                col_add1, col_add2 = st.columns(2)
+                with col_add1:
+                    if st.button("➕ Enviar Bilhete Ideal para o Simulador", type="primary", use_container_width=True, key="btn_add_ideal_sim"):
+                        if "packball_approved_matches" not in st.session_state:
+                            st.session_state["packball_approved_matches"] = []
+
+                        st.session_state["packball_approved_matches"].append({
+                            "id": f"ideal_{time.time()}",
+                            "jogo": "Bilhete Reestruturado IA (Múltiplas Seguras)",
+                            "mercado": "Dupla/Tripla de Valor Reconstruída",
+                            "odd": 1.85,
+                            "status": "Pendente",
+                            "data": "Hoje",
+                            "horario": "Vários",
+                            "liga": "Múltiplas Seguras"
+                        })
+                        st.toast("✅ Bilhete Ideal enviado com sucesso para o Simulador de Bilhetes!", icon="🎟️")
+
+                with col_add2:
+                    if st.button("🧹 Limpar Bilhete Sugerido", use_container_width=True, key="btn_clear_ideal_sim"):
+                        st.session_state["ideal_ticket_result"] = None
+                        st.rerun()
 
     # ----------------------------------------------------
     # ABA 2: CHAT ESTRATÉGICO & SUGESTÕES DE BILHETES
