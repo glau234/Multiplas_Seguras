@@ -105,7 +105,16 @@ Resultado: Empate 2x2 (RED)"""
         st.markdown("---")
 
         # Botão de Execução da Auditoria
-        if st.button("🚀 Auditar Minhas Apostas com o Gemini IA", type="primary", use_container_width=True):
+        col_act1, col_act2 = st.columns([3, 1])
+        with col_act1:
+            run_audit = st.button("🚀 Auditar Minhas Apostas com o Gemini IA", type="primary", use_container_width=True, key="btn_run_ticket_audit")
+        with col_act2:
+            if st.button("🧹 Nova Auditoria", use_container_width=True, key="btn_clear_ticket_audit"):
+                st.session_state["bet_audit_result"] = None
+                st.rerun()
+
+        if run_audit:
+            st.session_state["bet_audit_result"] = None
             if not uploaded_file and not manual_text.strip():
                 st.error("⚠️ Por favor, envie uma imagem/arquivo do bilhete OU digite o texto das suas apostas para análise.")
             else:
