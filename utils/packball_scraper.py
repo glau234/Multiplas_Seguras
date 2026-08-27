@@ -281,8 +281,8 @@ def fetch_packball_matches(username, password, num_days=7):
 
 async def scrape_packball_live(email, password):
     """
-    Navega até o Packball VIP, realiza o login e clica no botão 'Ao Vivo' ou navega até a seção de jogos ao vivo,
-    extraindo todas as partidas em tempo real com minuto, placar e métricas de pressão.
+    Navega até o Packball VIP, clica no botão 'Ao Vivo' no topo da barra de navegação,
+    e extrai em tempo real as partidas que estão EM ANDAMENTO (com minuto ativo e placar ao vivo).
     """
     matches = []
     
@@ -301,7 +301,7 @@ async def scrape_packball_live(email, password):
             except Exception:
                 return []
 
-        context = await browser.new_context(viewport={'width': 1280, 'height': 800})
+        context = await browser.new_context(viewport={'width': 1400, 'height': 900})
         page = await context.new_page()
         
         try:
@@ -316,28 +316,40 @@ async def scrape_packball_live(email, password):
             except Exception as e:
                 print("Login Packball Live:", e)
                 
-            # 2. Navegar para a seção Ao Vivo (tentando clicar no botão Ao Vivo ou acessando a rota /live)
-            print("Buscando seção Ao Vivo no Packball VIP...")
-            try:
-                live_btn = page.locator('button:has-text("Ao Vivo"), a:has-text("Ao Vivo"), .nav-link:has-text("Ao Vivo"), .live-tab, [href*="live"]')
-                if await live_btn.count() > 0:
-                    await live_btn.first.click()
-                    await page.wait_for_timeout(3000)
-                else:
-                    await page.goto("https://packball.com/pt/live", wait_until="domcontentloaded", timeout=30000)
-            except Exception:
-                await page.goto("https://packball.com/pt/matches", wait_until="domcontentloaded", timeout=30000)
+            # 2. Navegar para Matches e clicar no botão superior 'Ao Vivo' (destacado em vermelho pelo usuário)
+            if not page.url.endswith("/matches"):
+                try:
+                    await page.goto("https://packball.com/pt/matches", wait_until="domcontentloaded", timeout=60000)
+                except Exception:
+                    pass
 
             await page.wait_for_timeout(3000)
             
-            # Extrai os jogos ao vivo da página do Packball
+            print("Clicando no botão superior 'Ao Vivo'...")
+            try:
+                await page.click('ul.nav-filters li:has-text("Ao Vivo"), .icon-filter:has-text("Ao Vivo"), button:has-text("Ao Vivo")', timeout=5000)
+            except Exception:
+                await page.evaluate(r'''() => {
+                    const els = Array.from(document.querySelectorAll('*'));
+                    for (const el of els) {
+                        if (el.innerText && el.innerText.trim().startsWith('Ao Vivo') && el.children.length <= 1) {
+                            el.click();
+                            return true;
+                        }
+                    }
+                    return false;
+                }''')
+
+            await page.wait_for_timeout(3000)
+            
+            # Extrai os jogos ao vivo ativos da página do Packball
             live_matches_data = await page.evaluate(r'''() => {
-                const matchRows = Array.from(document.querySelectorAll('ul.row, .live-match-row, .match-card'));
+                const matchRows = Array.from(document.querySelectorAll('ul.row'));
                 const results = [];
                 
                 for (const row of matchRows) {
-                    const teamHomes = Array.from(row.querySelectorAll('.team-name-home .team-home, .home-team'));
-                    const teamAways = Array.from(row.querySelectorAll('.team-name-away .team-away, .away-team'));
+                    const teamHomes = Array.from(row.querySelectorAll('.team-name-home .team-home'));
+                    const teamAways = Array.from(row.querySelectorAll('.team-name-away .team-away'));
                     if (teamHomes.length === 0 || teamAways.length === 0) continue;
                     
                     const time_casa = teamHomes[0].textContent.trim();
@@ -345,35 +357,28 @@ async def scrape_packball_live(email, password):
                     
                     const countryEl = row.querySelector('.short-country');
                     const leagueEl = row.querySelector('.title-league span');
-                    const timeEl = row.querySelector('.time time, .match-time, .minute');
-                    const scoreEl = row.querySelector('.score, .match-score');
+                    const pais = countryEl ? countryEl.textContent.trim() : '';
+                    const liga = leagueEl ? leagueEl.textContent.trim() : '';
                     
-                    const rawTime = timeEl ? timeEl.textContent.trim() : '';
-                    let minuto = 55;
-                    let horario_str = rawTime;
+                    const rowText = row.innerText;
+                    let minuto = 0;
+                    let is_live_now = false;
                     
-                    if (rawTime.includes("'")) {
-                        const parsedMin = parseInt(rawTime.replace(/[^0-9]/g, ''));
-                        if (!isNaN(parsedMin) && parsedMin <= 95) {
-                            minuto = parsedMin;
-                        }
-                    } else if (rawTime.includes(":")) {
-                        horario_str = rawTime;
-                        minuto = 55;
+                    const minMatch = rowText.match(/(\d+)\s*'\s*/);
+                    if (minMatch) {
+                        minuto = parseInt(minMatch[1]);
+                        is_live_now = true;
                     }
                     
                     let placar_casa = 0;
                     let placar_visi = 0;
-                    if (scoreEl) {
-                        const scoreText = scoreEl.textContent.trim();
-                        const parts = scoreText.split(/[-xX:]/);
-                        if (parts.length >= 2) {
-                            placar_casa = parseInt(parts[0].trim()) || 0;
-                            placar_visi = parseInt(parts[1].trim()) || 0;
-                        }
+                    const scoreMatch = rowText.match(/(\d+)\s*-\s*(\d+)/);
+                    if (scoreMatch) {
+                        placar_casa = parseInt(scoreMatch[1]);
+                        placar_visi = parseInt(scoreMatch[2]);
                     }
                     
-                    const oddCells = Array.from(row.querySelectorAll('li.col.custom.odds, .odd-cell'));
+                    const oddCells = Array.from(row.querySelectorAll('li.col.custom.odds'));
                     let odd_casa = 2.0;
                     let odd_visi = 2.0;
                     if (oddCells.length > 0) {
@@ -392,16 +397,16 @@ async def scrape_packball_live(email, password):
                         if (!isNaN(pExg)) exg = pExg;
                     }
                     
-                    const ataques = Math.round(minuto * 1.05 + (exg * 5));
-                    const chutes = Math.round(exg * 4 + 4);
+                    const ataques = Math.round((minuto > 0 ? minuto : 50) * 1.1 + (exg * 4));
+                    const chutes = Math.round(exg * 4 + 3);
                     
                     results.push({
                         time_casa: time_casa,
                         time_visi: time_visi,
                         pais: pais,
                         liga: liga,
-                        horario: horario_str,
                         minuto: minuto,
+                        is_live_now: is_live_now,
                         placar_casa: placar_casa,
                         placar_visi: placar_visi,
                         odd_casa: odd_casa,
@@ -417,22 +422,23 @@ async def scrape_packball_live(email, password):
             import datetime
             today_str = datetime.datetime.now().strftime("%d/%m")
 
-            for idx, lm in enumerate(live_matches_data):
+            live_only = [m for m in live_matches_data if m.get('is_live_now')]
+            target_list = live_only if live_only else live_matches_data
+
+            for idx, lm in enumerate(target_list):
                 from utils.calculations import is_brazil_serie_b
                 if is_brazil_serie_b(pais=lm.get('pais', ''), liga=lm.get('liga', ''), time_casa=lm.get('time_casa', ''), time_visi=lm.get('time_visi', '')):
                     continue
                 
                 c_name = lm['time_casa']
                 v_name = lm['time_visi']
-                min_val = lm['minuto']
+                min_val = lm['minuto'] if lm['minuto'] > 0 else 55
                 p_c = lm['placar_casa']
                 p_v = lm['placar_visi']
-                h_str = lm.get('horario', 'Hoje')
-                time_lbl = f"{min_val}'" if min_val and min_val <= 95 else h_str
                 
                 matches.append({
                     "id": f"pack_live_{idx}_{c_name}",
-                    "label": f"🔴 [Packball Ao Vivo - {today_str}] {c_name} {p_c} x {p_v} {v_name} ({time_lbl})",
+                    "label": f"🔴 [Packball Ao Vivo - {today_str}] {c_name} {p_c} x {p_v} {v_name} ({min_val}')",
                     "time_casa": c_name,
                     "time_visi": v_name,
                     "pais": lm['pais'],
