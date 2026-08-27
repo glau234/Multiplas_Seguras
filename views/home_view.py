@@ -158,7 +158,6 @@ def render_home_view(is_admin: bool = False):
                     st.caption(mod["desc"])
                     if st.button(mod["btn_label"], use_container_width=True, key=f"btn_nav_home_{mod['key']}"):
                         st.session_state["selected_nav"] = mod["key"]
-                        st.session_state["nav_radio_state"] = mod["key"]
                         st.rerun()
 
     st.markdown("---")
