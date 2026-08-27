@@ -261,6 +261,28 @@ Com base nos critérios estritos do método Múltiplas Seguras (baixo ExG <= 2.5
 """
     return call_gemini_api(prompt, api_key)
 
+def optimize_image_for_gemini(image_bytes: bytes, max_dim: int = 1024) -> tuple:
+    """
+    Otimiza a imagem do bilhete antes de enviar à API do Gemini:
+    Redimensiona se for maior que 1024px e converte para JPEG 80% de qualidade,
+    reduzindo o tamanho da requisição de megabytes para poucos kilobytes e acelerando o processamento.
+    """
+    if not image_bytes or len(image_bytes) < 500:
+        return image_bytes, "image/png"
+    try:
+        from PIL import Image
+        import io
+        img = Image.open(io.BytesIO(image_bytes))
+        if img.mode in ("RGBA", "P"):
+            img = img.convert("RGB")
+        w, h = img.size
+        if w > max_dim or h > max_dim:
+            img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+        out = io.BytesIO()
+        img.save(out, format="JPEG", quality=80, optimize=True)
+        return out.getvalue(), "image/jpeg"
+    except Exception:
+        return image_bytes, "image/png"
 
 def analyze_user_bets_with_gemini(
     api_key: str,
@@ -312,102 +334,55 @@ Estruture sua resposta de forma clara, didática e motivadora com as seguintes s
 
     last_errors = []
 
-    # Se houver imagem (print do bilhete), usar multimodal
+    # Se houver imagem (print do bilhete), usar processamento multimodal otimizado
     if image_bytes:
-        # Camada 1: google-genai SDK
-        try:
-            from google import genai
-            from google.genai import types
-            
-            client = genai.Client(api_key=cleaned_key)
-            img_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
-            
-            for m_name in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest"]:
-                try:
-                    response = client.models.generate_content(
-                        model=m_name,
-                        contents=[prompt, img_part],
-                        config=types.GenerateContentConfig(
-                            system_instruction=system_instruction,
-                            temperature=0.7,
-                        )
-                    )
-                    if response and response.text:
-                        return response.text
-                except Exception as e_m:
-                    last_errors.append(f"GenAI {m_name}: {str(e_m)}")
-        except Exception as e_sdk1:
-            last_errors.append(f"GenAI SDK: {str(e_sdk1)}")
+        import urllib.request
+        import urllib.error
+        import base64
+        import json
+        
+        opt_bytes, opt_mime = optimize_image_for_gemini(image_bytes, max_dim=1024)
+        b64_img = base64.b64encode(opt_bytes).decode("utf-8")
+        combined_prompt = f"{system_instruction}\n\n{prompt}"
 
-        # Camada 2: legacy google.generativeai SDK
-        try:
-            import google.generativeai as legacy_genai
-            legacy_genai.configure(api_key=cleaned_key)
-            for m_name in ["gemini-1.5-flash", "gemini-1.5-pro"]:
-                try:
-                    model = legacy_genai.GenerativeModel(model_name=m_name)
-                    img_dict = {"mime_type": mime_type, "data": image_bytes}
-                    response = model.generate_content([system_instruction, prompt, img_dict])
-                    if response and response.text:
-                        return response.text
-                except Exception as e_m2:
-                    last_errors.append(f"Legacy {m_name}: {str(e_m2)}")
-        except Exception as e_sdk2:
-            last_errors.append(f"Legacy SDK: {str(e_sdk2)}")
-
-        # Camada 3: Direct REST API (Zero-Dependency com Base64)
-        try:
-            import urllib.request
-            import urllib.error
-            import base64
-            import json
-
-            b64_img = base64.b64encode(image_bytes).decode("utf-8")
-            for m_name in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest", "gemini-1.5-pro"]:
-                try:
-                    rest_url = f"https://generativelanguage.googleapis.com/v1beta/models/{m_name}:generateContent?key={cleaned_key}"
-                    payload = {
-                        "system_instruction": {"parts": [{"text": system_instruction}]},
-                        "contents": [
-                            {
-                                "parts": [
-                                    {"text": prompt},
-                                    {"inline_data": {"mime_type": mime_type, "data": b64_img}}
-                                ]
-                            }
-                        ]
+        # Execução direta via REST API com os modelos ativos para multimodal
+        vision_models = ["gemini-3.6-flash", "gemini-flash-latest"]
+        for m_name in vision_models:
+            try:
+                rest_url = f"https://generativelanguage.googleapis.com/v1beta/models/{m_name}:generateContent?key={cleaned_key}"
+                payload = {
+                    "contents": [
+                        {
+                            "parts": [
+                                {"text": combined_prompt},
+                                {"inline_data": {"mime_type": opt_mime, "data": b64_img}}
+                            ]
+                        }
+                    ]
+                }
+                req = urllib.request.Request(
+                    rest_url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={
+                        "Content-Type": "application/json",
+                        "User-Agent": "Mozilla/5.0"
                     }
-                    req = urllib.request.Request(
-                        rest_url,
-                        data=json.dumps(payload).encode("utf-8"),
-                        headers={"Content-Type": "application/json"}
-                    )
-                    with urllib.request.urlopen(req, timeout=30) as resp:
-                        res = json.loads(resp.read().decode("utf-8"))
-                        candidates = res.get("candidates", [])
-                        if candidates:
-                            parts = candidates[0].get("content", {}).get("parts", [])
-                            if parts and "text" in parts[0]:
-                                return parts[0]["text"]
-                except urllib.error.HTTPError as http_err:
-                    err_code = http_err.code
-                    err_body = http_err.read().decode("utf-8", errors="ignore")
-                    if err_code in [400, 401] or "API_KEY_INVALID" in err_body or "not valid" in err_body:
-                        return "❌ **Chave da API do Gemini Inválida:** A chave inserida no menu lateral é inválida ou foi rejeitada pelo Google. Por favor, crie uma chave gratuita no [Google AI Studio](https://aistudio.google.com/) (ela começa com `AIzaSy...`) e cole no menu lateral à esquerda."
-                    elif err_code == 429 or "RESOURCE_EXHAUSTED" in err_body:
-                        return "⏳ **Limite de Quota Atingido:** Sua cota gratuita no Google AI Studio atingiu o limite de requisições por minuto. Aguarde 30 segundos e tente novamente."
-                    last_errors.append(f"REST HTTP {err_code}: {err_body[:100]}")
-                except Exception as e_rest_m:
-                    last_errors.append(f"REST Vision {m_name}: {str(e_rest_m)}")
-        except Exception as e_rest:
-            last_errors.append(f"REST Vision: {str(e_rest)}")
+                )
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    res = json.loads(resp.read().decode("utf-8"))
+                    candidates = res.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts and "text" in parts[0]:
+                            return parts[0]["text"]
+            except Exception as e_m:
+                last_errors.append(f"REST {m_name}: {str(e_m)}")
 
-        # Verifica se alguma camada capturou erro de chave ou quota
-        all_err_str = " | ".join(last_errors).lower()
-        if "api_key_invalid" in all_err_str or "not valid" in all_err_str or "400" in all_err_str or "401" in all_err_str:
-            return "❌ **Chave da API do Gemini Inválida:** A chave de API inserida no menu lateral é inválida ou foi rejeitada pelo Google. Obtenha uma chave gratuita no [Google AI Studio](https://aistudio.google.com/) (geralmente começa com `AIzaSy...`) e cole no menu lateral."
+        # Fallback para texto caso falhe a imagem
+        if bet_text and bet_text.strip():
+            return call_gemini_api(prompt, api_key, system_instruction=system_instruction)
 
-        err_detail = " | ".join(last_errors[:2]) if last_errors else "Erro de comunicação com a IA."
+        err_detail = " | ".join(last_errors)
         return f"⚠️ **Não foi possível processar a imagem do bilhete.**\n\nDetalhes técnicos: `{err_detail}`\n\n👉 *Dica: Verifique se sua chave no menu lateral foi copiada do Google AI Studio ou envie o texto das apostas.*"
 
     # Se for apenas texto

@@ -137,6 +137,7 @@ Resultado: Empate 2x2 (RED)"""
                     )
 
                     st.session_state["bet_audit_result"] = resultado_auditoria
+                    st.rerun()
 
         # Exibição do Resultado da Auditoria
         if st.session_state.get("bet_audit_result"):
