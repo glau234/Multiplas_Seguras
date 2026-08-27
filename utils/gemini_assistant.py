@@ -334,18 +334,16 @@ Estruture sua resposta de forma clara, didática e motivadora com as seguintes s
 
     last_errors = []
 
-    # Se houver imagem (print do bilhete), usar processamento multimodal otimizado
+    # Se houver imagem (print do bilhete), usar processamento multimodal otimizado via requests.post
     if image_bytes:
-        import urllib.request
-        import urllib.error
+        import requests
         import base64
-        import json
         
         opt_bytes, opt_mime = optimize_image_for_gemini(image_bytes, max_dim=1024)
         b64_img = base64.b64encode(opt_bytes).decode("utf-8")
         combined_prompt = f"{system_instruction}\n\n{prompt}"
 
-        # Execução direta via REST API com os modelos ativos para multimodal
+        # Execução direta via requests.post com os modelos ativos para multimodal
         vision_models = ["gemini-3.6-flash", "gemini-flash-latest"]
         for m_name in vision_models:
             try:
@@ -360,21 +358,20 @@ Estruture sua resposta de forma clara, didática e motivadora com as seguintes s
                         }
                     ]
                 }
-                req = urllib.request.Request(
-                    rest_url,
-                    data=json.dumps(payload).encode("utf-8"),
-                    headers={
-                        "Content-Type": "application/json",
-                        "User-Agent": "Mozilla/5.0"
-                    }
-                )
-                with urllib.request.urlopen(req, timeout=15) as resp:
-                    res = json.loads(resp.read().decode("utf-8"))
-                    candidates = res.get("candidates", [])
+                res_http = requests.post(rest_url, json=payload, timeout=20)
+                if res_http.status_code == 200:
+                    res_data = res_http.json()
+                    candidates = res_data.get("candidates", [])
                     if candidates:
                         parts = candidates[0].get("content", {}).get("parts", [])
                         if parts and "text" in parts[0]:
                             return parts[0]["text"]
+                elif res_http.status_code in [400, 401]:
+                    return "❌ **Chave da API do Gemini Inválida:** A chave inserida no menu lateral é inválida ou foi rejeitada pelo Google. Por favor, crie uma chave gratuita no [Google AI Studio](https://aistudio.google.com/) (ela começa com `AIzaSy...`) e cole no menu lateral."
+                elif res_http.status_code == 429:
+                    return "⏳ **Limite de Quota Atingido no Google AI Studio (Erro 429):** Muitas requisições enviadas no mesmo minuto. Aguarde 20 a 30 segundos e clique em **🚀 Auditar Minhas Apostas** novamente."
+                else:
+                    last_errors.append(f"HTTP {res_http.status_code}: {res_http.text[:80]}")
             except Exception as e_m:
                 last_errors.append(f"REST {m_name}: {str(e_m)}")
 
@@ -382,8 +379,8 @@ Estruture sua resposta de forma clara, didática e motivadora com as seguintes s
         if bet_text and bet_text.strip():
             return call_gemini_api(prompt, api_key, system_instruction=system_instruction)
 
-        err_detail = " | ".join(last_errors)
-        return f"⚠️ **Não foi possível processar a imagem do bilhete.**\n\nDetalhes técnicos: `{err_detail}`\n\n👉 *Dica: Verifique se sua chave no menu lateral foi copiada do Google AI Studio ou envie o texto das apostas.*"
+        err_detail = " | ".join(last_errors) if last_errors else "Erro de comunicação."
+        return f"⚠️ **Não foi possível ler a imagem do bilhete.**\n\nDetalhes técnicos: `{err_detail}`\n\n👉 *Dica: Insira os nomes dos jogos em texto na caixa ao lado para gerar a auditoria completa instantaneamente.*"
 
     # Se for apenas texto
     return call_gemini_api(prompt, api_key, system_instruction=system_instruction)
