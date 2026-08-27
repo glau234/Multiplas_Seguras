@@ -17,7 +17,6 @@ def render_live_monitor():
     packball_live_list = st.session_state.get("packball_live_matches", [])
     
     if not packball_live_list:
-        # Se ainda não houver extração ao vivo na sessão, busca com fallback inteligente do Packball
         packball_live_list = fetch_packball_live_matches()
         st.session_state["packball_live_matches"] = packball_live_list
 
@@ -91,92 +90,95 @@ def render_live_monitor():
         if st.button("🚀 Sincronizar Ao Vivo (Packball)", icon="🔄", use_container_width=True, key="btn_sync_live_matches"):
             with st.spinner("Extraindo jogos ao vivo diretamente do Packball VIP..."):
                 fresh_live = fetch_packball_live_matches()
-                if fresh_live:
+                if fresh_live and len(fresh_live) > 0:
                     st.session_state["packball_live_matches"] = fresh_live
+                    first_label = fresh_live[0]["label"]
                     st.session_state["live_selected_index"] = 1
+                    st.session_state["select_live_match_option"] = first_label
                     st.toast(f"✅ {len(fresh_live)} jogos ao vivo extraídos do Packball VIP!", icon="🌐")
                 else:
-                    st.session_state["live_selected_index"] = 1 if len(options_labels) > 1 else 0
+                    if len(options_labels) > 1:
+                        st.session_state["live_selected_index"] = 1
+                        st.session_state["select_live_match_option"] = options_labels[1]
                     st.toast("Partidas ao vivo sincronizadas com sucesso!", icon="⚡")
                 st.rerun()
 
     st.markdown("---")
 
-    # Defaults baseados na seleção
-    default_jogo = "Flamengo x Grêmio (Copa do Brasil)"
-    default_logo_casa = ""
-    default_logo_visi = ""
-    default_minuto = 50
-    default_placar_casa = 2
-    default_placar_visi = 1
-    default_ataques = 55
-    default_chutes = 12
-    default_copa_volta = True
-
+    # Atualiza as variáveis padrão e o session state dos campos de formulário conforme a opção selecionada
     if selected_option != "-- Selecionar ou Inserir Manualmente --":
         selected_match = next((m for m in all_selectable_matches if m["label"] == selected_option), None)
         if selected_match:
             t_c = selected_match.get('time_casa', 'Casa')
             t_v = selected_match.get('time_visi', 'Visitante')
-            default_jogo = f"{t_c} x {t_v}"
-            default_logo_casa = selected_match.get("logo_casa", "")
-            default_logo_visi = selected_match.get("logo_visi", "")
+            def_jogo = f"{t_c} x {t_v}"
+            def_logo_casa = selected_match.get("logo_casa", "")
+            def_logo_visi = selected_match.get("logo_visi", "")
             try:
-                default_minuto = min(max(int(selected_match.get('minuto', 50)), 45), 90)
+                def_minuto = min(max(int(selected_match.get('minuto', 50)), 45), 90)
             except Exception:
-                default_minuto = 50
+                def_minuto = 50
             try:
-                default_placar_casa = int(selected_match.get('placar_casa', 0))
+                def_placar_casa = int(selected_match.get('placar_casa', 0))
             except Exception:
-                default_placar_casa = 0
+                def_placar_casa = 0
             try:
-                default_placar_visi = int(selected_match.get('placar_visi', 0))
+                def_placar_visi = int(selected_match.get('placar_visi', 0))
             except Exception:
-                default_placar_visi = 0
+                def_placar_visi = 0
             try:
-                default_ataques = int(selected_match.get('ataques_perigosos', 50))
+                def_ataques = int(selected_match.get('ataques_perigosos', 50))
             except Exception:
-                default_ataques = 50
+                def_ataques = 50
             try:
-                default_chutes = int(selected_match.get('finalizacoes', 10))
+                def_chutes = int(selected_match.get('finalizacoes', 10))
             except Exception:
-                default_chutes = 10
-            default_copa_volta = bool(selected_match.get('is_copa', False))
+                def_chutes = 10
+            def_copa_volta = bool(selected_match.get('is_copa', False))
+
+            # Atualização ativa do session_state dos widgets de entrada para garantir sincronicidade 100% no Streamlit
+            if st.session_state.get("last_synced_option") != selected_option:
+                st.session_state["input_live_match_name"] = def_jogo
+                st.session_state["input_live_minute"] = def_minuto
+                st.session_state["input_live_score_casa"] = def_placar_casa
+                st.session_state["input_live_score_visi"] = def_placar_visi
+                st.session_state["input_live_attacks"] = def_ataques
+                st.session_state["input_live_shots"] = def_chutes
+                st.session_state["input_live_is_copa"] = def_copa_volta
+                st.session_state["last_synced_option"] = selected_option
 
     col_rt1, col_rt2 = st.columns(2)
     with col_rt1:
         st.markdown("### ⚽ Parâmetros do Jogo")
         col_l1, col_l2 = st.columns(2)
         with col_l1:
-            if default_logo_casa:
-                st.image(default_logo_casa, width=45)
+            if st.session_state.get("logo_casa_url"):
+                st.image(st.session_state.get("logo_casa_url"), width=45)
         with col_l2:
-            if default_logo_visi:
-                st.image(default_logo_visi, width=45)
+            if st.session_state.get("logo_visi_url"):
+                st.image(st.session_state.get("logo_visi_url"), width=45)
                 
-        nome_jogo = st.text_input("Partida:", value=default_jogo, key="input_live_match_name")
-        minuto_atual = st.slider("Minuto Atual da Partida:", min_value=45, max_value=90, value=default_minuto, key="input_live_minute")
+        nome_jogo = st.text_input("Partida:", key="input_live_match_name")
+        minuto_atual = st.slider("Minuto Atual da Partida:", min_value=45, max_value=90, key="input_live_minute")
         
         col_g1, col_g2 = st.columns(2)
         with col_g1:
-            placar_casa = st.number_input("Gols Casa:", min_value=0, value=default_placar_casa, key="input_live_score_casa")
+            placar_casa = st.number_input("Gols Casa:", min_value=0, key="input_live_score_casa")
         with col_g2:
-            placar_visi = st.number_input("Gols Visitante:", min_value=0, value=default_placar_visi, key="input_live_score_visi")
+            placar_visi = st.number_input("Gols Visitante:", min_value=0, key="input_live_score_visi")
             
-        is_copa_volta = st.checkbox("É jogo de volta de Copa / Mata-mata?", value=default_copa_volta, key="input_live_is_copa")
+        is_copa_volta = st.checkbox("É jogo de volta de Copa / Mata-mata?", key="input_live_is_copa")
 
     with col_rt2:
         st.markdown("### 📊 Métricas de Pressão Ofensiva")
         ataques_perigosos_totais = st.number_input(
             "Soma de Ataques Perigosos das Duas Equipes:", 
             min_value=0, 
-            value=default_ataques,
             key="input_live_attacks"
         )
         finalizacoes_totais = st.number_input(
             "Soma de Finalizações no Gol (Ambos):", 
             min_value=0, 
-            value=default_chutes,
             key="input_live_shots"
         )
 
