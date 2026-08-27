@@ -393,6 +393,8 @@ else:
     if "selected_nav" not in st.session_state or st.session_state["selected_nav"] not in menu_options:
         st.session_state["selected_nav"] = "🏠 Tela Inicial (Dashboard)"
 
+    st.session_state["nav_radio_state"] = st.session_state["selected_nav"]
+
     def on_nav_change():
         st.session_state["selected_nav"] = st.session_state["nav_radio_state"]
 
