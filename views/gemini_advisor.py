@@ -120,7 +120,7 @@ Resultado: Empate 2x2 (RED)"""
             if not uploaded_file and not manual_text.strip():
                 st.error("⚠️ Por favor, envie uma imagem/arquivo do bilhete OU digite o texto das suas apostas para análise.")
             else:
-                with st.spinner("🤖 O Google Gemini está lendo os bilhetes, identificando os mercados e calculando o diagnóstico de erros..."):
+                with st.spinner("🤖 O Google Gemini está lendo os bilhetes, identificando os mercados e montando a Auditoria + Bilhete Ideal..."):
                     img_bytes = None
                     mime_type = "image/png"
                     file_text = ""
@@ -148,6 +148,19 @@ Resultado: Empate 2x2 (RED)"""
                     )
 
                     st.session_state["bet_audit_result"] = resultado_auditoria
+
+                    # Gera automaticamente o Bilhete Ideal Reestruturado no mesmo clique
+                    try:
+                        res_ideal = generate_ideal_reconstructed_ticket(
+                            audit_report=resultado_auditoria,
+                            original_text=texto_completo,
+                            api_key=gemini_key,
+                            style="ideal"
+                        )
+                        st.session_state["ideal_ticket_result"] = res_ideal
+                    except Exception:
+                        pass
+
                     st.rerun()
 
         # Exibição do Resultado da Auditoria
