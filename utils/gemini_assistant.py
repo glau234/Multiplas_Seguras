@@ -423,6 +423,64 @@ Estruture sua resposta de forma visual e clara:
     return call_gemini_api(prompt, api_key)
 
 
+def generate_categorized_packball_tickets(
+    games_text: str,
+    image_bytes: Optional[bytes] = None,
+    api_key: str = "",
+    cached_matches: Optional[List[Dict[str, Any]]] = None
+) -> str:
+    """
+    Monta os melhores bilhetes divididos pelas 4 categorias estratégicas
+    (Handicap Europeu +3, Escanteios, Gols/BTS, Cartões) e a Múltipla Master,
+    respeitando os critérios do Método Múltiplas Seguras.
+    """
+    prompt = f"""Você é o Engenheiro de Risco e Analista Estatístico Master do Método Múltiplas Seguras.
+
+Sua missão é analisar as partidas fornecidas (via texto, imagem ou Packball VIP) e montar OS MELHORES BILHETES ESTRATÉGICOS divididos estritamente pelas 4 principais categorias de mercado, além da Múltipla Master:
+
+Partidas e Dados de Entrada:
+{games_text if games_text.strip() else '(Utilize os jogos fornecidos na foto/imagem ou no painel Packball)'}
+
+Diretrizes Obrigatórias por Categoria:
+1. 🛡️ **BILHETE HANDICAP EUROPEU (+3 no Underdog)**: Selecione 2 a 3 partidas parelhas de baixo ExG (<= 2.40) aplicando Handicap Europeu +3 no Underdog.
+2. 🚩 **BILHETE ESCANTEIOS (Corners)**: Selecione os jogos com maior volume de finalizações e ExC elevado (mercados Over 8.5 / Over 9.5 ou Under 11.5).
+3. ⚽ **BILHETE GOLS & BTS**: Selecione os confrontos com melhor projeção de gols (Over 1.5 Gols na partida ou Dupla Hipótese + Under 4.5 Gols).
+4. 🟨 **BILHETE CARTÕES (Cards)**: Selecione as entradas mais seguras no mercado de cartões (ex: Menos de 4.5 ou 5.5 cartões em jogos de baixa rivalidade).
+5. 🏆 **BILHETE MÚLTIPLA SEGURA MASTER**: A combinação suprema de 2 a 3 seleções de valor supremo entre todas as categorias acima (Odd total 1.40 a 2.10).
+
+Estruture sua resposta de forma visual e organizada:
+
+### 🛡️ 1. BILHETE HANDICAP EUROPEU (+3)
+* Partida A vs Partida B — **Mercado:** Handicap Europeu +3 @Odd
+* Partida C vs Partida D — **Mercado:** Handicap Europeu +3 @Odd
+💰 **Odd Total:** @OddTotal | 📊 **Stake:** 3% a 5% da Banca
+
+### 🚩 2. BILHETE ESCANTEIOS
+* Partida A vs Partida B — **Mercado:** Mais de 8.5 Escanteios @Odd
+* Partida C vs Partida D — **Mercado:** Mais de 9.5 Escanteios @Odd
+💰 **Odd Total:** @OddTotal | 📊 **Stake:** 3% a 5% da Banca
+
+### ⚽ 3. BILHETE GOLS & AMBOS MARCAM
+* Partida A vs Partida B — **Mercado:** Mais de 1.5 Gols @Odd
+* Partida C vs Partida D — **Mercado:** Dupla Hipótese 1X e Under 4.5 Gols @Odd
+💰 **Odd Total:** @OddTotal | 📊 **Stake:** 3% a 5% da Banca
+
+### 🟨 4. BILHETE CARTÕES
+* Partida A vs Partida B — **Mercado:** Menos de 4.5 Cartões @Odd
+* Partida C vs Partida D — **Mercado:** Menos de 4.5 Cartões @Odd
+💰 **Odd Total:** @OddTotal | 📊 **Stake:** 3% a 5% da Banca
+
+### 🏆 5. MÚLTIPLA SEGURA MASTER (DUPLA/TRIPLA SEGURA RECOMENDADA)
+* Partida A vs Partida B — **Mercado:** [Melhor Mercado] @Odd
+* Partida C vs Partida D — **Mercado:** [Melhor Mercado] @Odd
+💰 **Odd Total Master:** @OddMaster | 🧠 **Justificativa Estratégica:** Breve explicação de por que este é o bilhete principal do dia.
+"""
+    if image_bytes:
+        return analyze_user_bets_with_gemini(api_key, games_text, image_bytes, additional_notes="Montar os melhores bilhetes divididos por Handicap, Escanteios, Gols e Cartões.")
+
+    return call_gemini_api(prompt, api_key)
+
+
 def lookup_or_generate_match_packball_stats(
     query: str,
     api_key: str,

@@ -15,7 +15,9 @@ from utils.calculations import (
 )
 from utils.gemini_assistant import (
     lookup_or_generate_match_packball_stats,
-    analyze_match_best_ticket
+    analyze_match_best_ticket,
+    generate_categorized_packball_tickets,
+    get_api_key
 )
 from utils.odds_comparator import render_bookmaker_comparison_card
 
@@ -38,14 +40,273 @@ def render_packball_integration():
         return
 
     st.title("🌐 Integração Packball VIP - Estatísticas Oficiais")
-    st.markdown("Extração oficial dos próximos dias do Packball para assinantes VIP com **separação automática por ligas**, exclusão da Série B e **consulta universal de qualquer jogo com análise de bilhetes por IA**.")
+    st.markdown("Extração oficial dos próximos dias do Packball para assinantes VIP com **separação automática por ligas**, exclusão da Série B e **gerador de bilhetes por categorias (Handicap, Escanteios, Gols e Cartões)**.")
 
     st.markdown("---")
 
-    tab_extraction, tab_search = st.tabs([
+    tab_extraction, tab_search, tab_categorized = st.tabs([
         "🌐 Extração Oficial VIP por Ligas", 
-        "🔍 Consulta de Qualquer Jogo (Packball + IA)"
+        "🔍 Consulta de Qualquer Jogo (Packball + IA)",
+        "🎟️ Criar Bilhetes por Categoria (Handicap, Escanteios, Gols, Cartões)"
     ])
+
+    gemini_key = st.session_state.get("gemini_api_key") or get_api_key()
+
+    # ====================================================
+    # ABA 1: EXTRAÇÃO OFICIAL VIP POR LIGAS
+    # ====================================================
+    with tab_extraction:
+        col1, col2 = st.columns([1, 2])
+        
+        with col1:
+            st.subheader("🔑 Credenciais Packball VIP")
+            username = st.text_input("Usuário / Email:", placeholder="seu_email@exemplo.com", value="glaucio.silveira@gmail.com")
+            password = st.text_input("Senha:", type="password", value="Denise23")
+            
+            num_dias = st.number_input("📅 Quantidade de Dias para Extração:", min_value=1, max_value=14, value=3, step=1, help="Escolha quantos dias futuros você deseja varrer e extrair do Packball.")
+            
+            st.markdown("#### 🎯 Filtros Estatísticos (Packball Nativo)")
+            filtro_max_exg = st.slider("ExG Máximo da Partida (Packball):", min_value=1.50, max_value=4.50, value=3.20, step=0.1, help="Partidas com menor ExG favorecem o Handicap +3 e mercados Under.")
+            filtro_max_diff = st.slider("Diferença Máxima de Odds (Equilíbrio):", min_value=0.50, max_value=3.50, value=2.50, step=0.1, help="Garante que as partidas sejam parelhas e equilibradas.")
+
+            st.info("🛡️ **Critério Ativo de Segurança:** Partidas da **Série B do Campeonato Brasileiro** e partidas com **datas anteriores a hoje** são excluídas automaticamente da extração.")
+            
+            if st.button(f"🚀 Iniciar Extração Oficial VIP ({num_dias} Dias)", use_container_width=True):
+                if not username or not password:
+                    st.error("Por favor, insira o usuário e a senha do Packball.")
+                else:
+                    with st.spinner(f"Conectando à sua conta VIP do Packball e extraindo métricas oficiais dos próximos {num_dias} dias..."):
+                        raw_matches = fetch_packball_matches(username, password, num_days=num_dias)
+                        
+                        if raw_matches and isinstance(raw_matches, dict) and "error" in raw_matches:
+                            st.error(raw_matches.get("error", "Erro desconhecido ao extrair dados."))
+                        elif raw_matches:
+                            clean_matches = filter_out_past_matches(filter_out_serie_b(raw_matches))
+                            
+                            enriched_matches = []
+                            for m in clean_matches:
+                                stats = calculate_xg_and_defense(m.get("odd_casa", 2.0), m.get("odd_empate", 3.10), m.get("odd_visi", 2.0))
+                                enriched_match = dict(m)
+                                enriched_match.update(stats)
+                                if "exg" in m and m["exg"]:
+                                    enriched_match["exg_oficial"] = m["exg"]
+                                else:
+                                    enriched_match["exg_oficial"] = stats["xg_total"]
+                                enriched_matches.append(enriched_match)
+                                
+                            st.session_state["packball_matches"] = enriched_matches
+                            st.success(f"✅ {len(enriched_matches)} partidas VIP extraídas e organizadas por ligas!")
+                        else:
+                            st.warning("Nenhum jogo encontrado que atenda aos critérios.")
+
+        with col2:
+            st.subheader("📊 Painel de Confrontos por Ligas")
+            
+            if "packball_matches" in st.session_state:
+                raw_stored_matches = st.session_state["packball_matches"]
+                matches = filter_out_past_matches(filter_out_serie_b(raw_stored_matches))
+                
+                # ====================================================
+                # FILTROS DE DATA, HORA E ORDENAÇÃO (DIRETO NO PAINEL)
+                # ====================================================
+                available_dates = ["Todas as Datas"]
+                raw_dates = [str(m.get("data", "")).strip() for m in matches if m.get("data")]
+                unique_dates = list(dict.fromkeys(raw_dates))
+                available_dates.extend(unique_dates)
+
+                with st.expander("📅 ⏰ **Filtros por Data, Horário & Ordenação Cronológica**", expanded=True):
+                    f_col1, f_col2, f_col3 = st.columns([1.5, 2, 1.2])
+                    with f_col1:
+                        filtro_data_selecionada = st.selectbox(
+                            "📅 Filtrar por Data:",
+                            options=available_dates,
+                            index=0,
+                            key="p_filter_date"
+                        )
+                    with f_col2:
+                        filtro_hora_range = st.slider(
+                            "⏰ Intervalo de Horário:",
+                            min_value=0,
+                            max_value=23,
+                            value=(0, 23),
+                            format="%d:00 h",
+                            key="p_filter_time"
+                        )
+                    with f_col3:
+                        st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+                        ordem_crescente = st.checkbox(
+                            "⬆️ Ordem Crescente",
+                            value=True,
+                            key="p_order_asc",
+                            help="Organiza todas as partidas do jogo mais cedo ao jogo mais tardio de forma cronológica crescente."
+                        )
+
+                # Aplica o filtro de Data e Hora
+                matches = filter_matches_by_datetime(
+                    matches,
+                    selected_date=filtro_data_selecionada,
+                    hora_inicio=filtro_hora_range[0],
+                    hora_fim=filtro_hora_range[1]
+                )
+                
+                # Aplica a ordenação por Data e Hora de forma crescente (se ativada)
+                matches = sort_matches_by_datetime(matches, ascending=ordem_crescente)
+                
+                if not matches:
+                    st.info("💡 Nenhuma partida encontrada para a data e horário selecionados.")
+                else:
+                    grouped_by_league = group_matches_by_league(matches)
+                    
+                    league_names = ["Todas as Partidas Extraídas (" + str(len(matches)) + ")"]
+                    league_names.extend([f"{league} ({len(l_matches)})" for league, l_matches in grouped_by_league.items()])
+                    
+                    tabs = st.tabs(league_names)
+                    
+                    with tabs[0]:
+                        col_top_act1, col_top_act2 = st.columns([2, 1])
+                        with col_top_act1:
+                            st.caption(f"Exibindo todas as **{len(matches)} partidas** organizadas em ordem cronológica.")
+                        with col_top_act2:
+                            if st.button("➕ Enviar Todas para Simulador", use_container_width=True, key="btn_send_all_sim"):
+                                if "packball_approved_matches" not in st.session_state:
+                                    st.session_state["packball_approved_matches"] = []
+                                
+                                transformed_aprovados = []
+                                for m in matches:
+                                    odd_c = float(m.get("odd_casa", 2.0))
+                                    odd_v = float(m.get("odd_visi", 2.0))
+                                    maior_odd_time = m["time_casa"] if odd_c > odd_v else m["time_visi"]
+                                    
+                                    data_str = m.get("data", "")
+                                    horario_str = m.get("horario", "")
+                                    dh_str = f"{data_str} {horario_str}".strip() if horario_str and horario_str not in data_str else data_str
+                                    
+                                    transformed_aprovados.append({
+                                        "id": m.get("id", str(time.time())),
+                                        "jogo": f"{m['time_casa']} vs {m['time_visi']}",
+                                        "mercado": f"Handicap Europeu +3 ({maior_odd_time})",
+                                        "odd": 1.15,
+                                        "status": "Pendente",
+                                        "data": dh_str,
+                                        "horario": horario_str,
+                                        "liga": m.get("liga", "")
+                                    })
+                                
+                                st.session_state["packball_approved_matches"].extend(transformed_aprovados)
+                                st.success(f"✅ {len(transformed_aprovados)} partidas enviadas para o Simulador de Bilhetes!")
+                        
+                        render_league_section("Todas as Partidas Extraídas", matches, filtro_max_diff, filtro_max_exg, "todas", show_header=False)
+                    
+                    for idx_tab, (league_name, league_matches) in enumerate(grouped_by_league.items(), start=1):
+                        with tabs[idx_tab]:
+                            render_league_section(league_name, league_matches, filtro_max_diff, filtro_max_exg, f"tab_{idx_tab}")
+
+            else:
+                st.info("👈 Insira suas credenciais VIP ao lado e clique em **Iniciar Extração** para carregar os confrontos organizados por ligas.")
+
+    # ====================================================
+    # ABA 2: CONSULTA DIRETA DE QUALQUER JOGO + MELHOR BILHETE IA
+    # ====================================================
+    with tab_search:
+        render_match_query_module()
+
+    # ====================================================
+    # ABA 3: CRIAR BILHETES POR CATEGORIA (HANDICAP, ESCANTEIOS, GOLS, CARTÕES)
+    # ====================================================
+    with tab_categorized:
+        st.subheader("🎟️ Gerador de Bilhetes Ideais por Categoria (Handicap, Escanteios, Gols & Cartões)")
+        st.markdown(
+            "Faça o **upload de uma foto/print**, **descreva os jogos em texto** ou **selecione partidas do Packball VIP**. "
+            "O algoritmo e o Google Gemini montarão automaticamente os **melhores bilhetes estratégicos** divididos pelas 4 categorias de mercado: "
+            "**Handicap Europeu +3**, **Escanteios**, **Gols/Ambos Marcam** e **Cartões**, além da **Múltipla Master**."
+        )
+
+        col_cat1, col_cat2 = st.columns([1.2, 1])
+        with col_cat1:
+            st.markdown("#### 1. Upload de Imagem ou Print do Bilhete")
+            cat_file = st.file_uploader(
+                "Envie uma foto ou print com as partidas:",
+                type=["png", "jpg", "jpeg", "webp", "pdf", "txt"],
+                key="cat_ticket_uploader"
+            )
+            if cat_file:
+                if cat_file.type.startswith("image/"):
+                    st.image(cat_file, caption="📸 Imagem Anexada", use_container_width=True)
+                else:
+                    st.info(f"📄 Arquivo: {cat_file.name}")
+
+        with col_cat2:
+            st.markdown("#### 2. Descrever Jogos ou Selecionar do Packball")
+            cat_text = st.text_area(
+                "Cole ou descreva as partidas desejadas:",
+                placeholder="Exemplo:\n1. Real Madrid vs Osasuna\n2. Flamengo vs Botafogo\n3. Manchester City vs Everton",
+                height=120,
+                key="cat_ticket_text_area"
+            )
+
+            stored_matches = filter_out_serie_b(st.session_state.get("packball_matches", []))
+            packball_options = [f"{m['time_casa']} vs {m['time_visi']} ({m.get('liga', '')})" for m in stored_matches]
+            selected_matches_labels = st.multiselect(
+                "Ou selecione entre os jogos extraídos do Packball VIP:",
+                options=packball_options,
+                key="cat_ticket_multiselect"
+            )
+
+        st.markdown("---")
+        if st.button("🚀 Gerar Melhores Bilhetes (Handicap, Escanteios, Gols & Cartões)", type="primary", use_container_width=True, key="btn_generate_categorized_tickets"):
+            games_payload_parts = []
+            if cat_text.strip():
+                games_payload_parts.append(cat_text.strip())
+            if selected_matches_labels:
+                games_payload_parts.append("Jogos Selecionados do Packball:\n" + "\n".join(selected_matches_labels))
+
+            final_games_text = "\n\n".join(games_payload_parts)
+
+            if not cat_file and not final_games_text.strip():
+                st.error("⚠️ Por favor, envie uma foto, digite jogos em texto OU selecione ao menos 1 partida do Packball.")
+            else:
+                with st.spinner("🤖 O Google Gemini está analisando os confrontos e compilando os 5 melhores bilhetes estratégicos por categoria..."):
+                    img_b = cat_file.getvalue() if cat_file and cat_file.type.startswith("image/") else None
+                    
+                    res_categorized = generate_categorized_packball_tickets(
+                        games_text=final_games_text,
+                        image_bytes=img_b,
+                        api_key=gemini_key,
+                        cached_matches=stored_matches
+                    )
+
+                    st.session_state["packball_categorized_result"] = res_categorized
+                    st.rerun()
+
+        # Exibição do Resultado por Categorias
+        if st.session_state.get("packball_categorized_result"):
+            st.markdown("---")
+            with st.container(border=True):
+                st.markdown("## 🧠 Painel de Bilhetes por Categoria (Método Múltiplas Seguras)")
+                st.markdown(st.session_state["packball_categorized_result"])
+
+                st.markdown("---")
+                col_cadd1, col_cadd2 = st.columns(2)
+                with col_cadd1:
+                    if st.button("➕ Enviar Bilhetes Gerados para o Simulador", type="primary", use_container_width=True, key="btn_send_cat_sim"):
+                        if "packball_approved_matches" not in st.session_state:
+                            st.session_state["packball_approved_matches"] = []
+
+                        st.session_state["packball_approved_matches"].append({
+                            "id": f"cat_{time.time()}",
+                            "jogo": "Combo por Categorias (Packball + IA)",
+                            "mercado": "Handicap +3, Escanteios, Gols e Cartões",
+                            "odd": 1.90,
+                            "status": "Pendente",
+                            "data": "Hoje",
+                            "horario": "Vários",
+                            "liga": "Múltiplas Seguras"
+                        })
+                        st.toast("✅ Bilhetes por categoria enviados para o Simulador!", icon="🎟️")
+                with col_cadd2:
+                    if st.button("🧹 Limpar Bilhetes Categorizados", use_container_width=True, key="btn_clear_cat_sim"):
+                        st.session_state["packball_categorized_result"] = None
+                        st.rerun()
 
     # ====================================================
     # ABA 1: EXTRAÇÃO OFICIAL VIP POR LIGAS
