@@ -155,15 +155,13 @@ Resultado: Empate 2x2 (RED)"""
             st.markdown("---")
             with st.container(border=True):
                 st.markdown("## 🧠 Relatório de Auditoria & Inteligência Estratégica")
-                st.markdown(st.session_state["bet_audit_result"])
 
-                st.markdown("---")
-                st.markdown("### 🎟️ Transformar em Bilhete Ideal")
-                st.caption("Solicite à IA que reestruture os jogos auditados acima em uma Dupla ou Tripla Segura (Método Múltiplas Seguras).")
+                # Destaque de Ação Rápida no TOPO do Relatório
+                st.info("💡 **Ação Rápida:** Clique em um dos botões abaixo para a IA reestruturar este bilhete nas entradas ideais do Método Múltiplas Seguras:")
 
-                col_rec1, col_rec2 = st.columns(2)
-                with col_rec1:
-                    if st.button("🎟️ Montar Bilhete Ideal (Dupla/Tripla Segura)", use_container_width=True, key="btn_gen_ideal_ticket"):
+                col_top1, col_top2 = st.columns(2)
+                with col_top1:
+                    if st.button("🎟️ Montar Bilhete Ideal (Dupla/Tripla Segura)", type="primary", use_container_width=True, key="btn_gen_ideal_ticket_top"):
                         with st.spinner("🤖 O Gemini está selecionando as melhores entradas e calculando a Odd Ideal..."):
                             res_ideal = generate_ideal_reconstructed_ticket(
                                 audit_report=st.session_state["bet_audit_result"],
@@ -174,8 +172,38 @@ Resultado: Empate 2x2 (RED)"""
                             st.session_state["ideal_ticket_result"] = res_ideal
                             st.rerun()
 
-                with col_rec2:
-                    if st.button("🛡️ Montar Bilhete Super Protegido (Handicap +3)", use_container_width=True, key="btn_gen_protected_ticket"):
+                with col_top2:
+                    if st.button("🛡️ Montar Bilhete Super Protegido (Handicap +3)", use_container_width=True, key="btn_gen_protected_ticket_top"):
+                        with st.spinner("🤖 O Gemini está aplicando proteção de Handicap Europeu +3..."):
+                            res_ideal = generate_ideal_reconstructed_ticket(
+                                audit_report=st.session_state["bet_audit_result"],
+                                original_text=manual_text,
+                                api_key=gemini_key,
+                                style="handicap"
+                            )
+                            st.session_state["ideal_ticket_result"] = res_ideal
+                            st.rerun()
+
+                st.markdown("---")
+                st.markdown(st.session_state["bet_audit_result"])
+
+                st.markdown("---")
+                st.markdown("### 🎟️ Transformar em Bilhete Ideal (Rodapé)")
+                col_bot1, col_bot2 = st.columns(2)
+                with col_bot1:
+                    if st.button("🎟️ Reestruturar Bilhete Ideal Agora", type="primary", use_container_width=True, key="btn_gen_ideal_ticket_bot"):
+                        with st.spinner("🤖 O Gemini está selecionando as melhores entradas e calculando a Odd Ideal..."):
+                            res_ideal = generate_ideal_reconstructed_ticket(
+                                audit_report=st.session_state["bet_audit_result"],
+                                original_text=manual_text,
+                                api_key=gemini_key,
+                                style="ideal"
+                            )
+                            st.session_state["ideal_ticket_result"] = res_ideal
+                            st.rerun()
+
+                with col_bot2:
+                    if st.button("🛡️ Reestruturar com Handicap Europeu +3", use_container_width=True, key="btn_gen_protected_ticket_bot"):
                         with st.spinner("🤖 O Gemini está aplicando proteção de Handicap Europeu +3..."):
                             res_ideal = generate_ideal_reconstructed_ticket(
                                 audit_report=st.session_state["bet_audit_result"],
