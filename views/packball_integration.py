@@ -584,10 +584,24 @@ def render_match_details_page(match):
         
     st.markdown("---")
     
-    odd_casa = match.get("odd_casa", 2.0)
-    odd_empate = match.get("odd_empate", 3.10)
-    odd_visi = match.get("odd_visi", 2.0)
-    exg_oficial = match.get("exg_oficial", match.get("exg", 2.5))
+    try:
+        odd_casa = float(match.get("odd_casa", 2.0))
+    except Exception:
+        odd_casa = 2.0
+    try:
+        odd_empate = float(match.get("odd_empate", 3.10))
+    except Exception:
+        odd_empate = 3.10
+    try:
+        odd_visi = float(match.get("odd_visi", 2.0))
+    except Exception:
+        odd_visi = 2.0
+
+    try:
+        exg_oficial = float(match.get("exg_oficial", match.get("exg", 2.5)))
+    except Exception:
+        exg_oficial = 2.5
+
     gols_avg = match.get("gols_avg", "N/A")
     over25 = match.get("over25", "N/A")
     bts = match.get("bts", "N/A")
@@ -604,23 +618,37 @@ def render_match_details_page(match):
     horario = match.get("horario", "")
     data_str = match.get("data", "Hoje")
     
-    def_casa = match.get("poder_def_casa", 65)
-    def_visi = match.get("poder_def_visi", 65)
-    cs_casa = match.get("clean_sheet_casa", 40.0)
-    cs_visi = match.get("clean_sheet_visi", 40.0)
+    try:
+        def_casa = float(match.get("poder_def_casa", 65))
+    except Exception:
+        def_casa = 65.0
+    try:
+        def_visi = float(match.get("poder_def_visi", 65))
+    except Exception:
+        def_visi = 65.0
+    try:
+        cs_casa = float(match.get("clean_sheet_casa", 40.0))
+    except Exception:
+        cs_casa = 40.0
+    try:
+        cs_visi = float(match.get("clean_sheet_visi", 40.0))
+    except Exception:
+        cs_visi = 40.0
+
+    time_casa_name = match.get("time_casa", "Time Casa")
+    time_visi_name = match.get("time_visi", "Time Visitante")
+    maior_odd_time = time_casa_name if odd_casa > odd_visi else time_visi_name
     
-    maior_odd_time = match['time_casa'] if odd_casa > odd_visi else match['time_visi']
-    
-    st.markdown(f"# ⚔️ {match['time_casa']} vs {match['time_visi']}")
+    st.markdown(f"# ⚔️ {time_casa_name} vs {time_visi_name}")
     st.markdown(f"📅 **Data:** {data_str} &nbsp;|&nbsp; ⏰ **Horário:** {horario} &nbsp;|&nbsp; 🏆 **Liga:** {liga} ({pais})")
     
     st.markdown("---")
     
     st.subheader("💰 Cotações 1X2 & Mercado Múltiplas Seguras")
     col_c1, col_c2, col_c3, col_c4 = st.columns([1, 1, 1, 1.5])
-    col_c1.metric(f"Vitória {match['time_casa']}", f"{odd_casa:.2f}")
+    col_c1.metric(f"Vitória {time_casa_name}", f"{odd_casa:.2f}")
     col_c2.metric("Empate", f"{odd_empate:.2f}")
-    col_c3.metric(f"Vitória {match['time_visi']}", f"{odd_visi:.2f}")
+    col_c3.metric(f"Vitória {time_visi_name}", f"{odd_visi:.2f}")
     with col_c4:
         st.success(f"🛡️ **Entrada Sugerida:**\n**Handicap Europeu +3 ({maior_odd_time})**\nOdd Estimada: ~1.12 - 1.18")
         
@@ -635,16 +663,16 @@ def render_match_details_page(match):
         st.metric("🎯 ExC Total do Jogo", f"{corners_calc['exc_total']} cantos")
         st.caption(f"Média Histórica (AVG): **{escanteios_avg}**")
     with col_e2:
-        st.metric(f"🏠 ExC {match['time_casa']}", f"{corners_calc['exc_casa']} cantos")
+        st.metric(f"🏠 ExC {time_casa_name}", f"{corners_calc['exc_casa']} cantos")
         st.caption(f"Domínio Ofensivo: **{corners_calc['share_casa_pct']}%**")
     with col_e3:
-        st.metric(f"✈️ ExC {match['time_visi']}", f"{corners_calc['exc_visi']} cantos")
+        st.metric(f"✈️ ExC {time_visi_name}", f"{corners_calc['exc_visi']} cantos")
         st.caption(f"Domínio Ofensivo: **{corners_calc['share_visi_pct']}%**")
     with col_e4:
         st.metric("📊 Média das Equipes (AVG)", f"{escanteios_avg} cantos")
         st.caption("Packball Nativo")
         
-    st.caption(f"Proporção de Escanteios Esperados: **{match['time_casa']} ({corners_calc['exc_casa']})** vs **{match['time_visi']} ({corners_calc['exc_visi']})**")
+    st.caption(f"Proporção de Escanteios Esperados: **{time_casa_name} ({corners_calc['exc_casa']})** vs **{time_visi_name} ({corners_calc['exc_visi']})**")
     st.progress(corners_calc['share_casa_pct'] / 100.0)
     
     st.markdown("---")
@@ -669,13 +697,13 @@ def render_match_details_page(match):
     st.subheader("🛡️ Diagnóstico de Solidez Defensiva & Clean Sheet")
     col_d1, col_d2 = st.columns(2)
     with col_d1:
-        st.markdown(f"#### Defesa {match['time_casa']}")
+        st.markdown(f"#### Defesa {time_casa_name}")
         st.progress(min(def_casa / 100.0, 1.0))
-        st.write(f"🛡️ **Solidez Defensiva:** **{def_casa}%** &nbsp;|&nbsp; 🧤 **Clean Sheet:** **{cs_casa}%**")
+        st.write(f"🛡️ **Solidez Defensiva:** **{def_casa:.0f}%** &nbsp;|&nbsp; 🧤 **Clean Sheet:** **{cs_casa:.0f}%**")
     with col_d2:
-        st.markdown(f"#### Defesa {match['time_visi']}")
+        st.markdown(f"#### Defesa {time_visi_name}")
         st.progress(min(def_visi / 100.0, 1.0))
-        st.write(f"🛡️ **Solidez Defensiva:** **{def_visi}%** &nbsp;|&nbsp; 🧤 **Clean Sheet:** **{cs_visi}%**")
+        st.write(f"🛡️ **Solidez Defensiva:** **{def_visi:.0f}%** &nbsp;|&nbsp; 🧤 **Clean Sheet:** **{cs_visi:.0f}%**")
         
     st.markdown("---")
 
