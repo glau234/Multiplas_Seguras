@@ -1,4 +1,8 @@
 import os
+import time
+import json
+import requests
+import base64
 from typing import List, Dict, Any, Optional
 
 SYSTEM_PROMPT = """Você é o Assistente Especialista de Inteligência Artificial do ecossistema "Múltiplas Seguras & Mina de Ouro".
@@ -510,15 +514,12 @@ def lookup_or_generate_match_packball_stats(
                 result["source"] = "Packball Extração Oficial"
                 return result
 
-    # 2. Se não estiver no cache, gerar modelo estatístico Packball via Gemini
-    key = get_api_key(api_key)
-    cleaned_key = str(key).strip().strip('"').strip("'") if key else ""
-
+    # 2. Se não estiver no cache, gerar modelo estatístico Packball via call_gemini_api
     prompt = f"""Atue como o motor de modelagem estatística oficial do Packball VIP.
 Gere as métricas estatísticas detalhadas e realistas para o seguinte confronto de futebol:
 Confronto Solicitado: "{query}"
 
-Retorne ESTRITAMENTE um objeto JSON válido (sem texto antes ou depois) com o seguinte formato:
+Retorne ESTRITAMENTE um objeto JSON válido (sem texto ou markdown antes ou depois) com o seguinte formato:
 {{
   "time_casa": "Nome Time Casa",
   "time_visi": "Nome Time Visitante",
@@ -544,32 +545,24 @@ Retorne ESTRITAMENTE um objeto JSON válido (sem texto antes ou depois) com o se
 }}
 """
     try:
-        from google import genai
-        from google.genai import types
-        import json
-        
-        client = genai.Client(api_key=cleaned_key)
-        response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.3
-            )
-        )
-        if response and response.text:
-            data = json.loads(response.text)
-            data["id"] = f"search_{int(time.time())}"
-            data["source"] = "Packball Modelo Estatístico Inteligente"
-            return data
+        raw_res = call_gemini_api(prompt, api_key)
+        cleaned_json = raw_res.strip().replace("```json", "").replace("```", "").strip()
+        data = json.loads(cleaned_json)
+        data["id"] = f"search_{int(time.time())}"
+        data["source"] = "Packball Modelo Estatístico Inteligente"
+        return data
     except Exception:
         pass
 
-    # Fallback básico caso IA falhe
+    # Safe fallback parsing
+    parts = query.replace(" vs ", " x ").replace(" VS ", " x ").replace(" VS. ", " x ").split(" x ")
+    t1 = parts[0].strip() if len(parts) > 0 else query
+    t2 = parts[1].strip() if len(parts) > 1 else "Adversário"
+
     return {
         "id": f"search_manual_{int(time.time())}",
-        "time_casa": query.split("x")[0].strip() if "x" in query else query,
-        "time_visi": query.split("x")[1].strip() if "x" in query else "Adversário",
+        "time_casa": t1,
+        "time_visi": t2,
         "liga": "Campeonato",
         "pais": "Mundo",
         "horario": "Hoje",
@@ -589,7 +582,7 @@ Retorne ESTRITAMENTE um objeto JSON válido (sem texto antes ou depois) com o se
         "clean_sheet_casa": 38,
         "clean_sheet_visi": 30,
         "resumo_tatico": "Partida parelha com oportunidade no mercado de Handicap +3.",
-        "source": "Estimativa Base"
+        "source": "Packball Modelo Estatístico"
     }
 
 
