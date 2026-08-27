@@ -348,10 +348,19 @@ async def scrape_packball_live(email, password):
                     const timeEl = row.querySelector('.time time, .match-time, .minute');
                     const scoreEl = row.querySelector('.score, .match-score');
                     
-                    const pais = countryEl ? countryEl.textContent.trim() : '';
-                    const liga = leagueEl ? leagueEl.textContent.trim() : '';
-                    const minuto_str = timeEl ? timeEl.textContent.replace(/[^0-9]/g, '') : '50';
-                    const minuto = parseInt(minuto_str) || 50;
+                    const rawTime = timeEl ? timeEl.textContent.trim() : '';
+                    let minuto = 55;
+                    let horario_str = rawTime;
+                    
+                    if (rawTime.includes("'")) {
+                        const parsedMin = parseInt(rawTime.replace(/[^0-9]/g, ''));
+                        if (!isNaN(parsedMin) && parsedMin <= 95) {
+                            minuto = parsedMin;
+                        }
+                    } else if (rawTime.includes(":")) {
+                        horario_str = rawTime;
+                        minuto = 55;
+                    }
                     
                     let placar_casa = 0;
                     let placar_visi = 0;
@@ -391,6 +400,7 @@ async def scrape_packball_live(email, password):
                         time_visi: time_visi,
                         pais: pais,
                         liga: liga,
+                        horario: horario_str,
                         minuto: minuto,
                         placar_casa: placar_casa,
                         placar_visi: placar_visi,
@@ -404,6 +414,9 @@ async def scrape_packball_live(email, password):
                 return results;
             }''')
 
+            import datetime
+            today_str = datetime.datetime.now().strftime("%d/%m")
+
             for idx, lm in enumerate(live_matches_data):
                 from utils.calculations import is_brazil_serie_b
                 if is_brazil_serie_b(pais=lm.get('pais', ''), liga=lm.get('liga', ''), time_casa=lm.get('time_casa', ''), time_visi=lm.get('time_visi', '')):
@@ -414,10 +427,12 @@ async def scrape_packball_live(email, password):
                 min_val = lm['minuto']
                 p_c = lm['placar_casa']
                 p_v = lm['placar_visi']
+                h_str = lm.get('horario', 'Hoje')
+                time_lbl = f"{min_val}'" if min_val and min_val <= 95 else h_str
                 
                 matches.append({
                     "id": f"pack_live_{idx}_{c_name}",
-                    "label": f"🔴 [Packball Ao Vivo] {c_name} {p_c} x {p_v} {v_name} ({min_val}')",
+                    "label": f"🔴 [Packball Ao Vivo - {today_str}] {c_name} {p_c} x {p_v} {v_name} ({time_lbl})",
                     "time_casa": c_name,
                     "time_visi": v_name,
                     "pais": lm['pais'],
@@ -431,7 +446,7 @@ async def scrape_packball_live(email, password):
                     "exg": lm['exg'],
                     "ataques_perigosos": lm['ataques_perigosos'],
                     "finalizacoes": lm['finalizacoes'],
-                    "data": "Hoje (Ao Vivo - Packball)"
+                    "data": f"Hoje ({today_str} Ao Vivo)"
                 })
         except Exception as e:
             print("Erro no scraping Packball Ao Vivo:", e)
