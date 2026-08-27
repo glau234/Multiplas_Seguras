@@ -16,6 +16,7 @@ from views.paper_trading import render_paper_trading
 from views.login_view import render_login_view
 from views.admin_management import render_admin_management
 from views.predictions import render_predictions
+from views.home_view import render_home_view
 
 # ----------------------------------------------------
 # CONFIGURAÇÃO DA PÁGINA STREAMLIT
@@ -375,6 +376,7 @@ else:
             st.rerun()
 
     menu_options = [
+        "🏠 Tela Inicial (Dashboard)",
         "🔮 Previsões",
         "🌐 Integração Packball",
         "🔍 Analisador de Partidas", 
@@ -388,7 +390,21 @@ else:
     if is_admin:
         menu_options.append("👑 Gestão de Usuários (Admin)")
 
-    app_mode = st.sidebar.radio("Navegue pelos Painéis:", menu_options)
+    if "selected_nav" not in st.session_state or st.session_state["selected_nav"] not in menu_options:
+        st.session_state["selected_nav"] = "🏠 Tela Inicial (Dashboard)"
+
+    def on_nav_change():
+        st.session_state["selected_nav"] = st.session_state["nav_radio_state"]
+
+    current_idx = menu_options.index(st.session_state["selected_nav"])
+
+    app_mode = st.sidebar.radio(
+        "Navegue pelos Painéis:", 
+        options=menu_options,
+        index=current_idx,
+        key="nav_radio_state",
+        on_change=on_nav_change
+    )
 
     st.sidebar.markdown("---")
 
@@ -433,7 +449,10 @@ else:
     # ----------------------------------------------------
     # ROTEAMENTO DOS DASHBOARDS
     # ----------------------------------------------------
-    if app_mode == "🔮 Previsões":
+    if app_mode == "🏠 Tela Inicial (Dashboard)":
+        render_home_view(is_admin)
+
+    elif app_mode == "🔮 Previsões":
         render_predictions()
 
     elif app_mode == "🌐 Integração Packball":
