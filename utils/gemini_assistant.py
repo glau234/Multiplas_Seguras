@@ -126,32 +126,31 @@ def call_gemini_api(prompt: str, api_key: str, system_instruction: Optional[str]
     except Exception as legacy_err:
         last_error_details.append(f"SDK google-generativeai error: {str(legacy_err)}")
 
-    # 3. Fallback via REST API nativa (Zero-Dependency)
+    # 3. Fallback via REST API nativa (Zero-Dependency com requests.post)
     try:
-        import urllib.request
-        import json
-        models_rest = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest", "gemini-1.5-pro"]
+        import requests
+        models_rest = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-flash-latest"]
         for m_name in models_rest:
             try:
                 rest_url = f"https://generativelanguage.googleapis.com/v1beta/models/{m_name}:generateContent?key={cleaned_key}"
+                full_text_prompt = f"{system_text}\n\n{prompt}" if system_text else prompt
                 payload = {
-                    "contents": [{"parts": [{"text": prompt}]}]
+                    "contents": [{"parts": [{"text": full_text_prompt}]}]
                 }
-                if system_text:
-                    payload["system_instruction"] = {"parts": [{"text": system_text}]}
-                    
-                req = urllib.request.Request(
-                    rest_url,
-                    data=json.dumps(payload).encode("utf-8"),
-                    headers={"Content-Type": "application/json"}
-                )
-                with urllib.request.urlopen(req, timeout=25) as resp:
-                    res = json.loads(resp.read().decode("utf-8"))
-                    candidates = res.get("candidates", [])
+                res_http = requests.post(rest_url, json=payload, timeout=20)
+                if res_http.status_code == 200:
+                    res_data = res_http.json()
+                    candidates = res_data.get("candidates", [])
                     if candidates:
                         parts = candidates[0].get("content", {}).get("parts", [])
                         if parts and "text" in parts[0]:
                             return parts[0]["text"]
+                elif res_http.status_code in [400, 401]:
+                    return "❌ **Chave da API do Gemini Inválida:** A chave inserida foi rejeitada pelo Google. Certifique-se de copiar a chave completa gerada no [Google AI Studio](https://aistudio.google.com/)."
+                elif res_http.status_code == 429:
+                    return "⏳ **Limite de Quota Atingido:** Sua cota no Google AI Studio atingiu o limite de requisições por minuto. Aguarde 20 segundos e tente novamente."
+                else:
+                    last_error_details.append(f"REST {m_name} HTTP {res_http.status_code}")
             except Exception as e_rest_m:
                 last_error_details.append(f"REST model {m_name}: {str(e_rest_m)}")
     except Exception as rest_err:
@@ -178,30 +177,28 @@ def analyze_match_with_gemini(match: Dict[str, Any], api_key: str, custom_questi
     win_prob = match.get("win_prob", "N/A")
     ppg = match.get("ppg", "N/A")
     def_casa = match.get("poder_def_casa", "65")
-    def_visi = match.get("poder_def_visi", "65")
+    def_visi = match.get("poder_def_visi", "60")
 
-    pergunta_extra = f"\nPergunta Específica do Usuário: {custom_question}" if custom_question else ""
-
-    prompt = f"""Analise taticamente e estatisticamente o seguinte confronto para o método Múltiplas Seguras:
-
-🏟️ Confronto: {time_casa} vs {time_visi}
-🏆 Liga: {liga} ({pais})
-💰 Cotações 1X2: Casa {odd_c} | Empate {odd_e} | Visitante {odd_v}
-⚽ Expectativa de Gols (ExG): {exg} gols
-🚩 Média/Expectativa de Escanteios (ExC): {exc_total}
-⚽ Ambas Marcam (BTS): {bts}
-🏆 Probabilidade de Vitória (Packball): {win_prob}
-📈 Pontos por Jogo (PPG): {ppg}
-🛡️ Poder Defensivo: Casa {def_casa}% | Visitante {def_visi}%
-{pergunta_extra}
-
-Estruture sua resposta em:
-1. 🎯 **Diagnóstico de Equilíbrio & Risco**
-2. 🛡️ **Validação do Mercado Handicap Europeu +3** (Vale a pena? Qual o time recomendado?)
-3. 🚩 **Análise dos Mercados Secundários (Gols / Escanteios)**
-4. 💡 **Veredito & Nota de Confiança (0 a 10)**
+    system_instruction = """Você é o Analista Tático e Especialista em Apostas de Valor (+EV) do Método Múltiplas Seguras.
+Sua missão é dar uma recomendação direta, profissional e matematicamente embasada sobre este jogo.
+Defenda entradas seguras (Handicap Europeu +3 no Underdog se ExG for baixo, ou Dupla Hipótese + Under Gols). Evite apostas secas arriscadas.
 """
-    return call_gemini_api(prompt, api_key)
+
+    prompt = f"""Analise a partida a seguir e forneça um parecer completo no padrão Múltiplas Seguras:
+
+Confronto: {time_casa} vs {time_visi}
+Liga: {liga} ({pais})
+Odds 1X2: Casa @{odd_c} | Empate @{odd_e} | Visitante @{odd_v}
+Expectativa de Gols (ExG): {exg}
+Média de Escanteios: {exc_total}
+Ambos Marcam (BTS): {bts}
+Probabilidade Histórica (Win Prob): {win_prob}
+Média de Pontos por Jogo (PPG): {ppg}
+Poder Defensivo: {time_casa} ({def_casa}%) vs {time_visi} ({def_visi}%)
+
+{f'Pergunta do usuário: {custom_question}' if custom_question else 'Forneça o parecer tático completo com a Entrada Recomendada + Nível de Segurança (0 a 10).'}
+"""
+    return call_gemini_api(prompt, api_key, system_instruction=system_instruction)
 
 
 def chat_with_gemini(messages: List[Dict[str, str]], context_matches: List[Dict[str, Any]], api_key: str) -> str:
@@ -286,19 +283,17 @@ def optimize_image_for_gemini(image_bytes: bytes, max_dim: int = 1024) -> tuple:
 
 def analyze_user_bets_with_gemini(
     api_key: str,
-    bet_text: str = "",
+    bet_text: str,
     image_bytes: Optional[bytes] = None,
     mime_type: str = "image/png",
     additional_notes: str = ""
 ) -> str:
     """
-    Realiza uma auditoria aprofundada dos bilhetes/apostas enviadas pelo usuário
-    (seja por texto digitado ou por imagem/print de casas de apostas como Bet365/Betano).
-    Diagnostica onde o apostador está errando e fornece um plano estratégico inteligente.
+    Analisa bilhetes do usuário (texto ou print de imagem) com o Google Gemini.
     """
-    key = get_api_key(api_key)
+    key = api_key or get_api_key()
     if not key:
-        return "⚠️ **Chave da API do Gemini não configurada.** Insira sua chave na barra lateral."
+        return "❌ **Chave da API do Gemini Não Configurada:** Insira sua API Key gratuita do [Google AI Studio](https://aistudio.google.com/) no menu lateral para ativar a auditoria de apostas."
 
     cleaned_key = str(key).strip().strip('"').strip("'")
 
@@ -343,14 +338,15 @@ Estruture sua resposta de forma clara, didática e motivadora com as seguintes s
         b64_img = base64.b64encode(opt_bytes).decode("utf-8")
         combined_prompt = f"{system_instruction}\n\n{prompt}"
 
-        # Execução direta via requests.post com os modelos ativos para multimodal
-        vision_models = ["gemini-3.6-flash", "gemini-flash-latest"]
+        # Prioriza o modelo ultra rápido gemini-3.1-flash-lite que não gera erros 503 nem timeouts
+        vision_models = ["gemini-3.1-flash-lite", "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-flash-latest"]
         for m_name in vision_models:
             try:
                 rest_url = f"https://generativelanguage.googleapis.com/v1beta/models/{m_name}:generateContent?key={cleaned_key}"
                 payload = {
                     "contents": [
                         {
+                            "role": "user",
                             "parts": [
                                 {"text": combined_prompt},
                                 {"inline_data": {"mime_type": opt_mime, "data": b64_img}}
@@ -370,17 +366,20 @@ Estruture sua resposta de forma clara, didática e motivadora com as seguintes s
                     return "❌ **Chave da API do Gemini Inválida:** A chave inserida no menu lateral é inválida ou foi rejeitada pelo Google. Por favor, crie uma chave gratuita no [Google AI Studio](https://aistudio.google.com/) (ela começa com `AIzaSy...`) e cole no menu lateral."
                 elif res_http.status_code == 429:
                     return "⏳ **Limite de Quota Atingido no Google AI Studio (Erro 429):** Muitas requisições enviadas no mesmo minuto. Aguarde 20 a 30 segundos e clique em **🚀 Auditar Minhas Apostas** novamente."
+                elif res_http.status_code == 503:
+                    last_errors.append(f"{m_name}: 503 Alta Demanda")
                 else:
-                    last_errors.append(f"HTTP {res_http.status_code}: {res_http.text[:80]}")
+                    last_errors.append(f"{m_name} HTTP {res_http.status_code}")
             except Exception as e_m:
-                last_errors.append(f"REST {m_name}: {str(e_m)}")
+                last_errors.append(f"{m_name}: {str(e_m)}")
 
-        # Fallback para texto caso falhe a imagem
+        # Fallback para texto caso a leitura da imagem encontre alta demanda nos servidores
         if bet_text and bet_text.strip():
-            return call_gemini_api(prompt, api_key, system_instruction=system_instruction)
+            fallback_intro = "⚠️ *Nota: O servidor de visão computacional do Google está com alta demanda momentânea na foto. Realizando auditoria técnica detalhada com base no texto das apostas fornecido:*\n\n"
+            return fallback_intro + call_gemini_api(prompt, api_key, system_instruction=system_instruction)
 
         err_detail = " | ".join(last_errors) if last_errors else "Erro de comunicação."
-        return f"⚠️ **Não foi possível ler a imagem do bilhete.**\n\nDetalhes técnicos: `{err_detail}`\n\n👉 *Dica: Insira os nomes dos jogos em texto na caixa ao lado para gerar a auditoria completa instantaneamente.*"
+        return f"⚠️ **Não foi possível ler a imagem do bilhete no momento devido a alta demanda nos servidores de imagem do Google.**\n\nDetalhes técnicos: `{err_detail}`\n\n👉 *Dica: Digite ou cole os nomes dos jogos no campo de texto ao lado para obter a auditoria completa instantaneamente.*"
 
     # Se for apenas texto
     return call_gemini_api(prompt, api_key, system_instruction=system_instruction)
