@@ -71,6 +71,13 @@ def _supabase_request(endpoint: str, method: str = "GET", payload: Any = None, q
             if res_body:
                 return json.loads(res_body)
             return True
+    except urllib.error.HTTPError as he:
+        try:
+            err_body = he.read().decode("utf-8")
+        except Exception:
+            err_body = str(he)
+        print(f"Erro HTTP Supabase ({method} {endpoint} - Status {he.code}): {err_body}")
+        return None
     except Exception as e:
         print(f"Erro na requisição ao Supabase ({method} {endpoint}): {e}")
         return None
@@ -88,7 +95,12 @@ def sp_get_simulated_tickets() -> Optional[List[Dict[str, Any]]]:
 
 def sp_add_simulated_ticket(ticket: Dict[str, Any]) -> bool:
     """Insere um novo bilhete simulado no Supabase."""
-    res = _supabase_request("simulated_tickets", method="POST", payload=ticket)
+    clean_ticket = dict(ticket)
+    if "created_at" in clean_ticket:
+        c_str = str(clean_ticket["created_at"])
+        if "/" in c_str or " " in c_str:
+            del clean_ticket["created_at"]
+    res = _supabase_request("simulated_tickets", method="POST", payload=clean_ticket)
     return res is not None
 
 def sp_update_simulated_ticket(ticket_id: str, fields: Dict[str, Any]) -> bool:
@@ -124,9 +136,19 @@ def sp_add_ticket(ticket: Dict[str, Any]) -> bool:
     """Salva um bilhete gerado no Supabase."""
     import time
     import random
-    if "id" not in ticket:
-        ticket["id"] = f"t_{int(time.time() * 1000)}_{random.randint(100, 999)}"
-    res = _supabase_request("tickets", method="POST", payload=ticket)
+    clean_ticket = dict(ticket)
+    if "id" not in clean_ticket or not clean_ticket["id"]:
+        clean_ticket["id"] = f"t_{int(time.time() * 1000)}_{random.randint(100, 999)}"
+    
+    # Remove created_at se estiver em formato string BR para o Supabase usar o DEFAULT NOW()
+    if "created_at" in clean_ticket:
+        c_str = str(clean_ticket["created_at"])
+        if "/" in c_str or " " in c_str:
+            del clean_ticket["created_at"]
+            
+    res = _supabase_request("tickets", method="POST", payload=clean_ticket)
+    return res is not None
+
 def sp_delete_ticket(ticket_id: str) -> bool:
     """Exclui um bilhete do Supabase pelo ID."""
     query = f"id=eq.{urllib.parse.quote(str(ticket_id))}"

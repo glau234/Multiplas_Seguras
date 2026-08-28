@@ -84,19 +84,24 @@ def add_match_to_history(match_dict: Dict[str, Any]) -> bool:
 
 def add_ticket_to_history(ticket_dict: Dict[str, Any]) -> bool:
     """Adiciona um bilhete gerado ao histórico (salva no Supabase e no JSON)."""
+    saved_sp = False
     if is_supabase_configured():
-        sp_add_ticket(ticket_dict)
+        saved_sp = sp_add_ticket(ticket_dict)
         
     data = load_data()
-    data["tickets"].insert(0, ticket_dict)
+    if "tickets" not in data:
+        data["tickets"] = []
+    if not any(str(t.get("id")) == str(ticket_dict.get("id")) for t in data["tickets"]):
+        data["tickets"].insert(0, ticket_dict)
     data["tickets"] = data["tickets"][:50]
-    return save_data(data)
+    saved_json = save_data(data)
+    return saved_sp or saved_json
 
 def get_tickets() -> list:
     """Retorna todos os bilhetes salvos no Supabase ou no JSON local."""
     if is_supabase_configured():
         sp_t = sp_get_tickets()
-        if sp_t is not None:
+        if sp_t is not None and len(sp_t) > 0:
             return sp_t
     data = load_data()
     return data.get("tickets", [])
