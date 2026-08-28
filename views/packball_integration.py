@@ -106,13 +106,31 @@ def render_packball_integration():
                 raw_stored_matches = st.session_state["packball_matches"]
                 matches = filter_out_past_matches(filter_out_serie_b(raw_stored_matches))
                 
-                # FILTROS DE DATA, HORA E ORDENAÇÃO
+                # FILTROS DE DATA, HORA, ORDENAÇÃO E QUALIFICAÇÃO ESTATÍSTICA
                 available_dates = ["Todas as Datas"]
                 raw_dates = [str(m.get("data", "")).strip() for m in matches if m.get("data")]
                 unique_dates = list(dict.fromkeys(raw_dates))
                 available_dates.extend(unique_dates)
 
-                with st.expander("📅 ⏰ **Filtros por Data, Horário & Ordenação Cronológica**", expanded=True):
+                def is_match_qualified(m, max_diff, max_exg):
+                    try:
+                        odd_c = float(m.get("odd_casa", 2.0))
+                        odd_v = float(m.get("odd_visi", 2.0))
+                        diff_odd = abs(odd_c - odd_v)
+                    except Exception:
+                        diff_odd = 0.0
+
+                    try:
+                        exg_val = float(m.get("exg_oficial", m.get("exg", 2.5)))
+                    except Exception:
+                        try:
+                            exg_val = float(m.get("gols_avg", 2.5))
+                        except Exception:
+                            exg_val = 2.5
+
+                    return (diff_odd <= max_diff) and (exg_val <= max_exg)
+
+                with st.expander("📅 ⏰ **Filtros por Data, Horário & Critérios Estatísticos**", expanded=True):
                     f_col1, f_col2, f_col3 = st.columns([1.5, 2, 1.2])
                     with f_col1:
                         filtro_data_selecionada = st.selectbox(
@@ -139,6 +157,13 @@ def render_packball_integration():
                             help="Organiza todas as partidas do jogo mais cedo ao jogo mais tardio de forma cronológica crescente."
                         )
 
+                    apenas_qualificados = st.checkbox(
+                        f"🎯 **Filtrar estritamente pelos critérios selecionados** (ExG ≤ {filtro_max_exg:.2f} e Diferença de Odds ≤ {filtro_max_diff:.2f})",
+                        value=True,
+                        key="p_filter_only_qualified",
+                        help="Quando ativado, exibe APENAS as partidas que cumprem rigorosamente os limites de ExG e Equilíbrio de Odds configurados nos sliders ao lado."
+                    )
+
                 # Aplica o filtro de Data e Hora
                 matches = filter_matches_by_datetime(
                     matches,
@@ -147,11 +172,15 @@ def render_packball_integration():
                     hora_fim=filtro_hora_range[1]
                 )
                 
+                # Aplica o filtro estrito de ExG e Diferença de Odds
+                if apenas_qualificados:
+                    matches = [m for m in matches if is_match_qualified(m, filtro_max_diff, filtro_max_exg)]
+                
                 # Aplica a ordenação por Data e Hora
                 matches = sort_matches_by_datetime(matches, ascending=ordem_crescente)
                 
                 if not matches:
-                    st.info("💡 Nenhuma partida encontrada para a data e horário selecionados.")
+                    st.info(f"💡 Nenhuma partida atende aos filtros atuais (ExG Máx: {filtro_max_exg:.2f}, Dif. Odds Máx: {filtro_max_diff:.2f}, Data: {filtro_data_selecionada}). Ajuste os sliders ou desmarque a restrição para ampliar a busca.")
                 else:
                     grouped_by_league = group_matches_by_league(matches)
                     
