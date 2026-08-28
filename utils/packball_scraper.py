@@ -59,8 +59,31 @@ async def scrape_packball(email, password, num_days=7):
             await page.screenshot(path="debug_state.png")
             
             seen_match_keys = set()
+            from utils.calculations import parse_match_datetime
+            from datetime import datetime
+            today_date = datetime.now().date()
+
+            # 3. Garantir que o navegador do Packball esteja posicionado na data de HOJE em diante
+            for _ in range(10):
+                current_date_nav = await page.evaluate(r'''() => {
+                    const el = document.querySelector('.arrow-nav .title-active');
+                    return el ? el.innerText.trim() : null;
+                }''')
+                if current_date_nav:
+                    nav_dt = parse_match_datetime(current_date_nav, "12:00")
+                    if nav_dt.date() < today_date:
+                        print(f"Data inicial no Packball ({current_date_nav}) é anterior a hoje ({today_date}). Avançando...")
+                        try:
+                            await page.locator('.arrow-nav .arrow-next, .arrow-next').click()
+                            await page.wait_for_timeout(2500)
+                        except Exception:
+                            break
+                    else:
+                        break
+                else:
+                    break
             
-            # 3. Loop pelos dias configurados pelo usuário
+            # 4. Loop pelos dias configurados pelo usuário (a partir de hoje)
             total_dias = max(1, min(int(num_days), 14))
             for day in range(total_dias):
                 current_date = await page.evaluate(r'''() => {
@@ -69,6 +92,18 @@ async def scrape_packball(email, password, num_days=7):
                 }''')
                 if not current_date:
                     current_date = f"Dia {day+1}"
+                
+                # Se ainda assim for data anterior a hoje, pula
+                nav_check_dt = parse_match_datetime(current_date, "12:00")
+                if nav_check_dt.date() < today_date:
+                    print(f"Ignorando data passada: {current_date}")
+                    try:
+                        await page.locator('.arrow-nav .arrow-next, .arrow-next').click()
+                        await page.wait_for_timeout(2500)
+                    except Exception:
+                        pass
+                    continue
+
                 print(f"Buscando {current_date} (Passo {day+1}/{total_dias})...")
                 
                 # Rolar a página para carregar todas as partidas da lista do dia (Lazy Loading)
