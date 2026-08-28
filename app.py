@@ -414,18 +414,21 @@ else:
     from utils.gemini_assistant import get_api_key
     if "gemini_api_key" not in st.session_state or not st.session_state["gemini_api_key"]:
         st.session_state["gemini_api_key"] = get_api_key() or ""
+    
+    if st.session_state["gemini_api_key"]:
+        os.environ["GEMINI_API_KEY"] = st.session_state["gemini_api_key"]
 
     with st.sidebar.expander("🤖 Configuração Gemini AI (Google)", expanded=not bool(st.session_state["gemini_api_key"])):
         gemini_key_input = st.text_input(
             "Chave API Gemini:", 
             value=st.session_state["gemini_api_key"], 
             type="password", 
-            help="Obtenha sua chave gratuita em https://aistudio.google.com/"
+            help="Chave configurada e salva automaticamente."
         )
         if gemini_key_input:
             st.session_state["gemini_api_key"] = gemini_key_input
             os.environ["GEMINI_API_KEY"] = gemini_key_input
-            st.success("IA Gemini Conectada!")
+            st.success("IA Gemini Conectada e Ativa!")
         else:
             st.caption("Obtenha sua chave em [Google AI Studio](https://aistudio.google.com/).")
 
