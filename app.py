@@ -440,13 +440,26 @@ else:
             st.success("Chave de API ativa!")
 
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### 💾 Status dos Dados Locais")
+    st.sidebar.markdown("### 💾 Status dos Dados no Banco")
+    
+    from utils.supabase_db import is_supabase_configured
+    if is_supabase_configured():
+        st.sidebar.success("🟢 Supabase (Nuvem Ativa)")
+    else:
+        st.sidebar.caption("📁 Banco de Dados Local (JSON)")
+
     data = load_data()
-    st.sidebar.text(f"Partidas Salvas: {len(data.get('matches', []))}")
-    st.sidebar.text(f"Bilhetes Armazenados: {len(data.get('tickets', []))}")
-    st.sidebar.text(f"Simulações Virtuais: {len(data.get('simulated_tickets', []))}")
-    st.sidebar.text(f"Sinais Ao Vivo: {len(data.get('live_signals', []))}")
-    st.sidebar.text(f"Etapa Atual: {data.get('leverage_progress', {}).get('current_step', 0)} / 100")
+    total_bilhetes = len(data.get('tickets', []))
+    total_simulacoes = len(data.get('simulated_tickets', []))
+    total_partidas = len(data.get('matches', []))
+    total_sinais = len(data.get('live_signals', []))
+    step_alav = data.get('leverage_progress', {}).get('current_step', 0)
+
+    st.sidebar.text(f"🎫 Bilhetes no Banco: {total_bilhetes}")
+    st.sidebar.text(f"🧪 Simulações Virtuais: {total_simulacoes}")
+    st.sidebar.text(f"⚽ Partidas Salvas: {total_partidas}")
+    st.sidebar.text(f"⚡ Sinais Ao Vivo: {total_sinais}")
+    st.sidebar.text(f"📈 Etapa Atual: {step_alav} / 100")
 
     # ----------------------------------------------------
     # ROTEAMENTO DOS DASHBOARDS
