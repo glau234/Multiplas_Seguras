@@ -122,8 +122,10 @@ def sp_get_tickets() -> Optional[List[Dict[str, Any]]]:
 
 def sp_add_ticket(ticket: Dict[str, Any]) -> bool:
     """Salva um bilhete gerado no Supabase."""
+    import time
+    import random
     if "id" not in ticket:
-        ticket["id"] = f"t_{int(os.times().system * 1000)}"
+        ticket["id"] = f"t_{int(time.time() * 1000)}_{random.randint(100, 999)}"
     res = _supabase_request("tickets", method="POST", payload=ticket)
     return res is not None
 

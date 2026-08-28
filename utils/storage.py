@@ -33,20 +33,34 @@ def ensure_data_file():
         save_data(initial_data)
 
 def load_data() -> Dict[str, Any]:
-    """Carrega todos os dados armazenados no arquivo JSON."""
+    """Carrega todos os dados armazenados no arquivo JSON e sincroniza com o Supabase se configurado."""
     ensure_data_file()
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
     except Exception as e:
         print(f"Erro ao ler histórico JSON: {e}")
-        return {
+        data = {
             "matches": [],
             "tickets": [],
             "leverage_progress": {"current_step": 0, "current_bankroll": 100.0, "target_bankroll": 1378061.0, "history": []},
             "live_signals": [],
             "simulated_tickets": []
         }
+
+    # Sincroniza em tempo real com o Supabase se estiver conectado
+    if is_supabase_configured():
+        try:
+            sp_sim = sp_get_simulated_tickets()
+            if sp_sim is not None:
+                data["simulated_tickets"] = sp_sim
+            sp_t = sp_get_tickets()
+            if sp_t is not None:
+                data["tickets"] = sp_t
+        except Exception as err:
+            print(f"Aviso ao sincronizar Supabase em load_data: {err}")
+
+    return data
 
 def save_data(data: Dict[str, Any]) -> bool:
     """Salva os dados no arquivo JSON local."""

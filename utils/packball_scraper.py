@@ -327,7 +327,7 @@ async def scrape_packball_live(email, password):
             
             print("Clicando no botão superior 'Ao Vivo'...")
             try:
-                await page.click('ul.nav-filters li:has-text("Ao Vivo"), .icon-filter:has-text("Ao Vivo"), button:has-text("Ao Vivo")', timeout=5000)
+                await page.click("span:text-is('Ao Vivo')", timeout=5000, force=True)
             except Exception:
                 await page.evaluate(r'''() => {
                     const els = Array.from(document.querySelectorAll('*'));
@@ -339,8 +339,23 @@ async def scrape_packball_live(email, password):
                     }
                     return false;
                 }''')
-
+            
             await page.wait_for_timeout(3000)
+            
+            print("Clicando na aba 'Estatísticas ao Vivo'...")
+            try:
+                await page.click("li:text-is('Estatísticas ao vivo')", timeout=5000, force=True)
+            except Exception:
+                await page.evaluate(r'''() => {
+                    const els = Array.from(document.querySelectorAll('*'));
+                    for (const el of els) {
+                        if (el.innerText && el.innerText.trim().startsWith('Estatísticas ao vivo') && el.children.length <= 1) {
+                            el.click();
+                            return true;
+                        }
+                    }
+                    return false;
+                }''')
             
             # Extrai os jogos ao vivo ativos da página do Packball
             live_matches_data = await page.evaluate(r'''() => {

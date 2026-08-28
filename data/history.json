@@ -3,6 +3,29 @@
   "tickets": [
     {
       "tipo_bilhete": "Múltipla Segura (Handicaps)",
+      "banca_total": 1000.0,
+      "stake_percent": 5.0,
+      "stake_valor": 50.0,
+      "selecoes": [
+        {
+          "jogo": "Arsenal vs Chelsea",
+          "mercado": "Handicap Europeu +3 (Chelsea)",
+          "odd": 1.15,
+          "data": "Hoje"
+        },
+        {
+          "jogo": "Real Madrid vs Atlético Madrid",
+          "mercado": "Handicap Europeu +3 (Atlético Madrid)",
+          "odd": 1.15,
+          "data": "Hoje"
+        }
+      ],
+      "odd_total": 1.32,
+      "retorno_potencial": 66.0,
+      "lucro_liquido": 16.0
+    },
+    {
+      "tipo_bilhete": "Múltipla Segura (Handicaps)",
       "banca_total": 100.0,
       "stake_percent": 5.0,
       "stake_valor": 5.0,
@@ -61,5 +84,35 @@
     "target_bankroll": 1378061.0,
     "history": []
   },
-  "live_signals": []
+  "live_signals": [],
+  "simulated_tickets": [
+    {
+      "id": "sim_1787923928_510",
+      "tipo": "Múltipla Segura (Handicap +3)",
+      "jogo": "Arsenal vs Chelsea | Real Madrid vs Atlético Madrid",
+      "mercado": "Handicap Europeu +3",
+      "odd": 1.15,
+      "odd_total": 1.32,
+      "stake_valor": 50.0,
+      "selecoes": [
+        {
+          "jogo": "Arsenal vs Chelsea",
+          "mercado": "Handicap Europeu +3 (Chelsea)",
+          "odd": 1.15,
+          "data": "Hoje"
+        },
+        {
+          "jogo": "Real Madrid vs Atlético Madrid",
+          "mercado": "Handicap Europeu +3 (Atlético Madrid)",
+          "odd": 1.15,
+          "data": "Hoje"
+        }
+      ],
+      "status": "PENDENTE",
+      "placar_final": "Em Andamento",
+      "retorno_real": 0.0,
+      "lucro_real": 0.0,
+      "analise_ia": "Bilhete estruturado com proteção máxima de +3 gols no underdog em confrontos equilibrados."
+    }
+  ]
 }
