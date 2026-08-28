@@ -9,7 +9,9 @@ from utils.supabase_db import (
     sp_delete_simulated_ticket,
     sp_clear_simulated_tickets,
     sp_add_ticket,
-    sp_get_tickets
+    sp_get_tickets,
+    sp_delete_ticket,
+    sp_clear_tickets
 )
 
 DATA_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "history.json")
@@ -88,6 +90,33 @@ def add_ticket_to_history(ticket_dict: Dict[str, Any]) -> bool:
     data = load_data()
     data["tickets"].insert(0, ticket_dict)
     data["tickets"] = data["tickets"][:50]
+    return save_data(data)
+
+def get_tickets() -> list:
+    """Retorna todos os bilhetes salvos no Supabase ou no JSON local."""
+    if is_supabase_configured():
+        sp_t = sp_get_tickets()
+        if sp_t is not None:
+            return sp_t
+    data = load_data()
+    return data.get("tickets", [])
+
+def delete_ticket_from_history(ticket_id: str) -> bool:
+    """Exclui um bilhete do histórico (do Supabase e do JSON local)."""
+    if is_supabase_configured():
+        sp_delete_ticket(ticket_id)
+    data = load_data()
+    if "tickets" in data:
+        data["tickets"] = [t for t in data["tickets"] if str(t.get("id")) != str(ticket_id)]
+        return save_data(data)
+    return True
+
+def clear_tickets_history() -> bool:
+    """Limpa todos os bilhetes do histórico (no Supabase e no JSON local)."""
+    if is_supabase_configured():
+        sp_clear_tickets()
+    data = load_data()
+    data["tickets"] = []
     return save_data(data)
 
 def update_leverage_progress(step: int, bankroll: float) -> bool:

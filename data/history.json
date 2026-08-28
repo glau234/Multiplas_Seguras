@@ -2,6 +2,25 @@
   "matches": [],
   "tickets": [
     {
+      "id": "test_1787928286",
+      "created_at": "28/08/2026 11:45",
+      "tipo_bilhete": "Múltipla Segura (Handicaps)",
+      "banca_total": 500.0,
+      "stake_percent": 5.0,
+      "stake_valor": 25.0,
+      "selecoes": [
+        {
+          "jogo": "Deportivo Alavés vs Villarreal",
+          "selecao": "Handicap Europeu +3 (Alavés)",
+          "odd": 1.15,
+          "horario": "Hoje 16:00"
+        }
+      ],
+      "odd_total": 1.15,
+      "retorno_potencial": 28.75,
+      "lucro_liquido": 3.75
+    },
+    {
       "tipo_bilhete": "Múltipla Segura (Handicaps)",
       "banca_total": 1000.0,
       "stake_percent": 5.0,

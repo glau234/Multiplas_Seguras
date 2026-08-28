@@ -127,6 +127,16 @@ def sp_add_ticket(ticket: Dict[str, Any]) -> bool:
     if "id" not in ticket:
         ticket["id"] = f"t_{int(time.time() * 1000)}_{random.randint(100, 999)}"
     res = _supabase_request("tickets", method="POST", payload=ticket)
+def sp_delete_ticket(ticket_id: str) -> bool:
+    """Exclui um bilhete do Supabase pelo ID."""
+    query = f"id=eq.{urllib.parse.quote(str(ticket_id))}"
+    res = _supabase_request("tickets", method="DELETE", query_params=query)
+    return res is not None
+
+def sp_clear_tickets() -> bool:
+    """Limpa a tabela de bilhetes no Supabase."""
+    query = "id=neq.none"
+    res = _supabase_request("tickets", method="DELETE", query_params=query)
     return res is not None
 
 # ====================================================
