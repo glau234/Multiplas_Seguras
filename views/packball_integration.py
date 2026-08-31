@@ -71,7 +71,7 @@ def render_packball_integration():
 
             st.info("🛡️ **Critério Ativo de Segurança:** Partidas da **Série B do Campeonato Brasileiro** e partidas com **datas anteriores a hoje** são excluídas automaticamente da extração.")
             
-            if st.button(f"🚀 Iniciar Extração Oficial VIP ({num_dias} Dias)", use_container_width=True, key="pk_start_extract_btn"):
+            if st.button(f"🚀 Iniciar Extração Oficial VIP ({num_dias} Dias)", type="primary", use_container_width=True, key="pk_start_extract_btn"):
                 if not username or not password:
                     st.error("Por favor, insira o usuário e a senha do Packball.")
                 else:
@@ -80,7 +80,7 @@ def render_packball_integration():
                         
                         if raw_matches and isinstance(raw_matches, dict) and "error" in raw_matches:
                             st.error(raw_matches.get("error", "Erro desconhecido ao extrair dados."))
-                        elif raw_matches:
+                        elif raw_matches and isinstance(raw_matches, list):
                             clean_matches = filter_out_past_matches(filter_out_serie_b(raw_matches))
                             
                             enriched_matches = []
@@ -95,14 +95,37 @@ def render_packball_integration():
                                 enriched_matches.append(enriched_match)
                                 
                             st.session_state["packball_matches"] = enriched_matches
+                            st.toast(f"Extração concluída: {len(enriched_matches)} partidas VIP carregadas!", icon="✅")
                             st.success(f"✅ {len(enriched_matches)} partidas VIP extraídas e organizadas por ligas!")
+                            st.rerun()
                         else:
                             st.warning("Nenhum jogo encontrado que atenda aos critérios.")
 
         with col2:
             st.subheader("📊 Painel de Confrontos por Ligas")
             
-            if "packball_matches" in st.session_state:
+            # Carrega automaticamente cache recente caso ainda não esteja na sessão
+            if "packball_matches" not in st.session_state or not st.session_state["packball_matches"]:
+                try:
+                    cache_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "cached_packball.json")
+                    if os.path.exists(cache_file):
+                        with open(cache_file, "r", encoding="utf-8") as f:
+                            cached = json.load(f)
+                            if cached and isinstance(cached, list) and len(cached) > 0:
+                                clean_cached = filter_out_past_matches(filter_out_serie_b(cached))
+                                if clean_cached:
+                                    enriched_cached = []
+                                    for m in clean_cached:
+                                        stats = calculate_xg_and_defense(m.get("odd_casa", 2.0), m.get("odd_empate", 3.10), m.get("odd_visi", 2.0))
+                                        en = dict(m)
+                                        en.update(stats)
+                                        en["exg_oficial"] = m.get("exg") or stats["xg_total"]
+                                        enriched_cached.append(en)
+                                    st.session_state["packball_matches"] = enriched_cached
+                except Exception:
+                    pass
+
+            if "packball_matches" in st.session_state and st.session_state["packball_matches"]:
                 raw_stored_matches = st.session_state["packball_matches"]
                 matches = filter_out_past_matches(filter_out_serie_b(raw_stored_matches))
                 
