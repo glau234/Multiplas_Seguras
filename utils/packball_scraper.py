@@ -11,6 +11,36 @@ except ImportError:
     async_playwright = None
     PLAYWRIGHT_AVAILABLE = False
 
+CHROMIUM_ARGS = [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-gpu",
+    "--no-first-run",
+    "--no-zygote",
+    "--single-process",
+    "--disable-background-networking",
+    "--disable-default-apps",
+    "--disable-extensions",
+    "--disable-sync",
+    "--mute-audio"
+]
+
+async def get_browser_instance(p):
+    """Obtém uma instância estável do Chromium configurada para containers Linux e Windows."""
+    try:
+        return await p.chromium.launch(headless=True, args=CHROMIUM_ARGS)
+    except Exception as e_launch:
+        print(f"Tentando instalar Chromium no ambiente: {e_launch}")
+        import subprocess
+        import sys
+        try:
+            subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=False)
+            return await p.chromium.launch(headless=True, args=CHROMIUM_ARGS)
+        except Exception as e_retry:
+            print(f"Falha ao iniciar Chromium após instalação: {e_retry}")
+            return None
+
 async def scrape_packball(email, password, num_days=7):
     matches = []
     
@@ -19,17 +49,10 @@ async def scrape_packball(email, password, num_days=7):
         return []
         
     async with async_playwright() as p:
-        try:
-            browser = await p.chromium.launch(headless=True)
-        except Exception as e_launch:
-            print(f"Instalando navegador Chromium do Playwright no ambiente... ({e_launch})")
-            import subprocess
-            try:
-                subprocess.run(["playwright", "install", "chromium"], check=False)
-                browser = await p.chromium.launch(headless=True)
-            except Exception as e_retry:
-                print(f"Falha ao iniciar Chromium: {e_retry}")
-                return []
+        browser = await get_browser_instance(p)
+        if browser is None:
+            print("Não foi possível iniciar o navegador Chromium.")
+            return []
 
         context = await browser.new_context(viewport={'width': 1280, 'height': 800})
         page = await context.new_page()
@@ -326,15 +349,10 @@ async def scrape_packball_live(email, password):
         return []
         
     async with async_playwright() as p:
-        try:
-            browser = await p.chromium.launch(headless=True)
-        except Exception as e_launch:
-            import subprocess
-            try:
-                subprocess.run(["playwright", "install", "chromium"], check=False)
-                browser = await p.chromium.launch(headless=True)
-            except Exception:
-                return []
+        browser = await get_browser_instance(p)
+        if browser is None:
+            print("Não foi possível iniciar o navegador Chromium.")
+            return []
 
         context = await browser.new_context(viewport={'width': 1400, 'height': 900})
         page = await context.new_page()
