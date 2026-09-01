@@ -153,6 +153,50 @@ def render_packball_integration():
 
                     return (diff_odd <= max_diff) and (exg_val <= max_exg)
 
+                # Ligas Favoritas Oficiais do Usuário no Packball (conforme Previsões):
+                USER_FAVORITE_SPECS = [
+                    ("ARG", "Liga Profesional"),
+                    ("BRA", "Serie A"),
+                    ("BRA", "Brasileirão"),
+                    ("BRA", "Copa do Brasil"),
+                    ("ENG", "Premier League"),
+                    ("ESP", "La Liga"),
+                    ("FRA", "Ligue 1"),
+                    ("GER", "Bundesliga"),
+                    ("GER", "2. Bundesliga"),
+                    ("ITA", "Serie A"),
+                    ("NED", "Eredivisie"),
+                    ("POR", "Liga Portugal")
+                ]
+
+                def is_match_in_user_favorites(m):
+                    p_up = str(m.get("pais", "")).strip().upper()
+                    l_low = str(m.get("liga", "")).strip().lower()
+                    if "serie b" in l_low or "série b" in l_low:
+                        return False
+                    for fav_p, fav_l in USER_FAVORITE_SPECS:
+                        if p_up == fav_p.upper() or fav_p.upper() in p_up:
+                            if fav_l.lower() in l_low:
+                                if fav_l == "La Liga" and ("la liga 2" in l_low or "segunda" in l_low):
+                                    continue
+                                if fav_l == "Bundesliga" and "2. bundesliga" in l_low:
+                                    continue
+                                return True
+                            if fav_l == "2. Bundesliga" and "2. bundesliga" in l_low:
+                                return True
+                    return False
+
+                # Barra de Alternância Rápida de Ligas Favoritas
+                col_btn_fav1, col_btn_fav2 = st.columns([1.5, 1.5])
+                with col_btn_fav1:
+                    if st.button("⭐ Apenas Minhas Ligas Favoritas", use_container_width=True, key="pk_btn_only_my_fav_leagues"):
+                        st.session_state["pk_only_fav_leagues_active"] = True
+                        st.rerun()
+                with col_btn_fav2:
+                    if st.button("🌐 Exibir Todas as Ligas", use_container_width=True, key="pk_btn_all_leagues"):
+                        st.session_state["pk_only_fav_leagues_active"] = False
+                        st.rerun()
+
                 with st.expander("📅 ⏰ **Filtros por Data, Horário & Critérios Estatísticos**", expanded=True):
                     f_col1, f_col2, f_col3 = st.columns([1.5, 2, 1.2])
                     with f_col1:
@@ -180,12 +224,23 @@ def render_packball_integration():
                             help="Organiza todas as partidas do jogo mais cedo ao jogo mais tardio de forma cronológica crescente."
                         )
 
+                    apenas_minhas_ligas = st.checkbox(
+                        "⭐ **Filtrar apenas partidas das Minhas Ligas Favoritas** (BRA Serie A, Premier League, La Liga, Serie A ITA, Bundesliga, Eredivisie, Liga Portugal, etc.)",
+                        value=st.session_state.get("pk_only_fav_leagues_active", False),
+                        key="pk_check_only_fav_leagues",
+                        help="Quando ativado, exibe apenas partidas das 10 ligas favoritas oficiais configuradas em Previsões."
+                    )
+
                     apenas_qualificados = st.checkbox(
                         f"🎯 **Filtrar estritamente pelos critérios selecionados** (ExG ≤ {filtro_max_exg:.2f} e Diferença de Odds ≤ {filtro_max_diff:.2f})",
                         value=True,
                         key="p_filter_only_qualified",
                         help="Quando ativado, exibe APENAS as partidas que cumprem rigorosamente os limites de ExG e Equilíbrio de Odds configurados nos sliders ao lado."
                     )
+
+                # Sincroniza o estado do filtro de ligas
+                if apenas_minhas_ligas:
+                    matches = [m for m in matches if is_match_in_user_favorites(m)]
 
                 # Aplica o filtro de Data e Hora
                 matches = filter_matches_by_datetime(
