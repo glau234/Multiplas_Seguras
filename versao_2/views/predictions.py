@@ -126,7 +126,30 @@ def render_predictions():
         liga = str(m.get("liga", "")).strip()
         return f"[{pais}] {liga}" if pais else liga
 
-    # Ligas Favoritas Oficiais do Usuário no Packball (conforme print):
+    # Ligas Favoritas Oficiais do Usuário no Packball (conforme imagem):
+    # 1. ARG - Liga Profesional de Fútbol
+    # 2. BRA - Serie A (excluindo Série B)
+    # 3. ENG - Premier League
+    # 4. ESP - La Liga
+    # 5. FRA - Ligue 1
+    # 6. GER - Bundesliga
+    # 7. GER - 2. Bundesliga
+    # 8. ITA - Serie A
+    # 9. NED - Eredivisie
+    # 10. POR - Liga Portugal
+    OFFICIAL_USER_FAVORITE_LABELS = [
+        "[BRA] Serie A",
+        "[ENG] Premier League",
+        "[ESP] La Liga",
+        "[ITA] Serie A",
+        "[ARG] Liga Profesional de Fútbol",
+        "[FRA] Ligue 1",
+        "[GER] Bundesliga",
+        "[GER] 2. Bundesliga",
+        "[NED] Eredivisie",
+        "[POR] Liga Portugal"
+    ]
+
     USER_FAVORITE_SPECS = [
         ("ARG", "Liga Profesional"),
         ("BRA", "Serie A"),
@@ -159,30 +182,30 @@ def render_predictions():
                     return True
         return False
 
-    # Lista de todas as ligas formatadas encontradas nas partidas
-    all_leagues_labels = sorted(list(dict.fromkeys(format_league_label(m) for m in clean_matches if m.get("liga"))))
-    default_favs_labels = sorted(list(dict.fromkeys(format_league_label(m) for m in clean_matches if is_match_in_favorites(m))))
+    # Lista completa de opções (Ligas favoritas oficiais garantidas + todas as outras ligas encontradas)
+    extracted_leagues = [format_league_label(m) for m in clean_matches if m.get("liga")]
+    all_leagues_labels = sorted(list(set(OFFICIAL_USER_FAVORITE_LABELS).union(set(extracted_leagues))))
     
-    if not default_favs_labels:
-        default_favs_labels = all_leagues_labels
-
-    # Força a atualização da lista de favoritos da nova versão no navegador
-    if st.session_state.get("user_fav_leagues_ver") != "v2_bra_serie_a_fixed":
+    # As ligas favoritas que devem vir pré-selecionadas por padrão
+    default_favs_labels = [l for l in OFFICIAL_USER_FAVORITE_LABELS if l in all_leagues_labels]
+    
+    # Força a atualização da lista de favoritos no navegador do usuário
+    if st.session_state.get("user_fav_leagues_ver") != "v4_bra_serie_a_permanent":
         st.session_state["user_favorite_leagues"] = default_favs_labels
-        st.session_state["user_fav_leagues_ver"] = "v2_bra_serie_a_fixed"
+        st.session_state["user_fav_leagues_ver"] = "v4_bra_serie_a_permanent"
 
     if "user_favorite_leagues" not in st.session_state or not st.session_state["user_favorite_leagues"]:
         st.session_state["user_favorite_leagues"] = default_favs_labels
 
     col_f1, col_f2, col_f3 = st.columns([2, 1.8, 1])
     with col_f1:
-        search_term = st.text_input("🔎 Buscar Time ou Campeonato:", placeholder="Ex: Real Madrid, Barcelona, Premier League...")
+        search_term = st.text_input("🔎 Buscar Time ou Campeonato:", placeholder="Ex: Real Madrid, Palmeiras, Flamengo, Premier League...")
     with col_f2:
         selected_leagues = st.multiselect(
             "🏆 Minhas Ligas (Filtro Ativo):",
             options=all_leagues_labels,
             default=[l for l in st.session_state["user_favorite_leagues"] if l in all_leagues_labels],
-            help="Exibe apenas partidas das ligas selecionadas (padrão: suas ligas favoritas do Packball)."
+            help="Exibe apenas partidas das ligas selecionadas (padrão: suas 10 ligas favoritas do Packball)."
         )
     with col_f3:
         available_dates = sorted(list(dict.fromkeys(str(m.get("data", "")).strip() for m in clean_matches if m.get("data"))))
