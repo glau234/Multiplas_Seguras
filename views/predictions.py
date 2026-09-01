@@ -120,40 +120,62 @@ def render_predictions():
     stored_matches = st.session_state.get("packball_matches", [])
     clean_matches = filter_out_past_matches(filter_out_serie_b(stored_matches))
 
-    # Lista de todas as ligas encontradas nas partidas
-    all_leagues = sorted(list(dict.fromkeys(m.get("liga", "Geral") for m in clean_matches if m.get("liga"))))
+    # Identificador único de cada liga combinando País e Nome da Liga
+    def format_league_label(m):
+        pais = str(m.get("pais", "")).strip()
+        liga = str(m.get("liga", "")).strip()
+        return f"[{pais}] {liga}" if pais else liga
 
-    # Ligas de Elite favoritas do usuário no Packball
-    PACKBALL_USER_FAVORITES = [
-        "Premier League", 
-        "La Liga", 
-        "Serie A", 
-        "Bundesliga", 
-        "Ligue 1", 
-        "Champions League", 
-        "Europa League", 
-        "Europa Conference League", 
-        "Copa Libertadores", 
-        "Copa Sul-Americana", 
-        "Brasileirão Série A", 
-        "Copa do Brasil"
+    # Ligas Favoritas Oficiais do Usuário no Packball (conforme print):
+    USER_FAVORITE_SPECS = [
+        ("ARG", "Liga Profesional"),
+        ("BRA", "Serie A"),
+        ("ENG", "Premier League"),
+        ("ESP", "La Liga"),
+        ("FRA", "Ligue 1"),
+        ("GER", "Bundesliga"),
+        ("GER", "2. Bundesliga"),
+        ("ITA", "Serie A"),
+        ("NED", "Eredivisie"),
+        ("POR", "Liga Portugal")
     ]
-    default_favs = [l for l in all_leagues if any(fav.lower() in l.lower() for fav in PACKBALL_USER_FAVORITES)]
-    if not default_favs:
-        default_favs = all_leagues
+
+    def is_match_in_favorites(m):
+        p_up = str(m.get("pais", "")).strip().upper()
+        l_low = str(m.get("liga", "")).strip().lower()
+        if "serie b" in l_low or "série b" in l_low:
+            return False
+        for fav_p, fav_l in USER_FAVORITE_SPECS:
+            if p_up == fav_p.upper():
+                if fav_l.lower() in l_low:
+                    if fav_l == "La Liga" and ("la liga 2" in l_low or "segunda" in l_low):
+                        continue
+                    if fav_l == "Bundesliga" and "2. bundesliga" in l_low:
+                        continue
+                    return True
+                if fav_l == "2. Bundesliga" and "2. bundesliga" in l_low:
+                    return True
+        return False
+
+    # Lista de todas as ligas formatadas encontradas nas partidas
+    all_leagues_labels = sorted(list(dict.fromkeys(format_league_label(m) for m in clean_matches if m.get("liga"))))
+    default_favs_labels = sorted(list(dict.fromkeys(format_league_label(m) for m in clean_matches if is_match_in_favorites(m))))
+    
+    if not default_favs_labels:
+        default_favs_labels = all_leagues_labels
 
     if "user_favorite_leagues" not in st.session_state or not st.session_state["user_favorite_leagues"]:
-        st.session_state["user_favorite_leagues"] = default_favs
+        st.session_state["user_favorite_leagues"] = default_favs_labels
 
-    col_f1, col_f2, col_f3 = st.columns([2, 1.5, 1])
+    col_f1, col_f2, col_f3 = st.columns([2, 1.8, 1])
     with col_f1:
-        search_term = st.text_input("🔎 Buscar Time ou Campeonato:", placeholder="Ex: Real Madrid, Lyon, Champions League...")
+        search_term = st.text_input("🔎 Buscar Time ou Campeonato:", placeholder="Ex: Real Madrid, Barcelona, Premier League...")
     with col_f2:
         selected_leagues = st.multiselect(
             "🏆 Minhas Ligas (Filtro Ativo):",
-            options=all_leagues,
-            default=[l for l in st.session_state["user_favorite_leagues"] if l in all_leagues],
-            help="Selecione as ligas desejadas. O painel exibirá apenas partidas das ligas marcadas."
+            options=all_leagues_labels,
+            default=[l for l in st.session_state["user_favorite_leagues"] if l in all_leagues_labels],
+            help="Exibe apenas partidas das ligas selecionadas (padrão: suas ligas favoritas do Packball)."
         )
     with col_f3:
         available_dates = sorted(list(dict.fromkeys(str(m.get("data", "")).strip() for m in clean_matches if m.get("data"))))
@@ -165,19 +187,19 @@ def render_predictions():
         )
 
     # Botões rápidos para alternar ligas
-    col_b1, col_b2, col_b3 = st.columns([1.5, 1.5, 2])
+    col_b1, col_b2, col_b3 = st.columns([1.5, 1.8, 1.8])
     with col_b1:
-        if st.button("🌐 Selecionar Todas as Ligas", use_container_width=True, key="btn_sel_all_leagues"):
-            st.session_state["user_favorite_leagues"] = all_leagues
+        if st.button("🌐 Todas as Ligas", use_container_width=True, key="btn_sel_all_leagues"):
+            st.session_state["user_favorite_leagues"] = all_leagues_labels
             st.rerun()
     with col_b2:
-        if st.button("🏆 Apenas Minhas Ligas Favoritas", use_container_width=True, key="btn_sel_fav_leagues"):
-            st.session_state["user_favorite_leagues"] = default_favs
+        if st.button("⭐ Minhas Ligas Favoritas", use_container_width=True, key="btn_sel_fav_leagues"):
+            st.session_state["user_favorite_leagues"] = default_favs_labels
             st.rerun()
     with col_b3:
-        if st.button("💾 Salvar Seleção como Minhas Ligas", use_container_width=True, key="btn_save_fav_leagues"):
+        if st.button("💾 Salvar Seleção Atual", use_container_width=True, key="btn_save_fav_leagues"):
             st.session_state["user_favorite_leagues"] = selected_leagues
-            st.toast("✅ Preferências de Minhas Ligas salvas com sucesso!", icon="🏆")
+            st.toast("✅ Suas preferências de ligas foram salvas!", icon="🏆")
 
     # Filtrar partidas estritamente pelas ligas selecionadas
     filtered_matches = clean_matches
@@ -193,7 +215,7 @@ def render_predictions():
 
     # Filtro estrito por ligas selecionadas no multiselect
     if selected_leagues:
-        filtered_matches = [m for m in filtered_matches if m.get("liga") in selected_leagues]
+        filtered_matches = [m for m in filtered_matches if format_league_label(m) in selected_leagues]
     else:
         filtered_matches = []
 
