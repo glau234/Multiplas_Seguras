@@ -86,55 +86,31 @@ def render_home_view(is_admin: bool = False):
     st.markdown("---")
     st.markdown("### 📌 Escolha o Painel que Deseja Acessar:")
 
-    # Lista de Módulos para o Grid
+    # Lista de Módulos Oficiais para a Versão 2
     modules = [
         {
-            "key": "🔮 Previsões",
-            "title": "🔮 Previsões",
-            "desc": "Veja as previsões do dia filtradas pelas suas ligas favoritas, com probabilidades H2H, % Algoritmo e Odds EV.",
+            "key": "🌐 Integração Packball VIP",
+            "title": "🌐 Integração Packball VIP",
+            "desc": "Extração oficial VIP por ligas, consulta inteligente de jogos e gerador de bilhetes por categorias (Handicap, Escanteios, Gols e Cartões).",
+            "btn_label": "🌐 Ir para Packball VIP"
+        },
+        {
+            "key": "🔮 Previsões (Ligas Favoritas)",
+            "title": "🔮 Previsões (Minhas Ligas)",
+            "desc": "Previsões oficiais com base nas melhores ligas do futebol mundial (Premier League, La Liga, Brasileirão Série A, Champions) com probabilidades e EV.",
             "btn_label": "🔮 Ir para Previsões"
         },
         {
-            "key": "🌐 Integração Packball",
-            "title": "🌐 Integração Packball",
-            "desc": "Extração oficial VIP por ligas e gerador de bilhetes por categoria (Handicap, Escanteios, Gols e Cartões).",
-            "btn_label": "🌐 Ir para Packball"
+            "key": "🎟️ Simulador de Bilhetes",
+            "title": "🎟️ Simulador de Bilhetes",
+            "desc": "Monte seus bilhetes múltiplos, audite com IA e salve com segurança permanente no banco de dados Supabase.",
+            "btn_label": "🎟️ Ir para Simulador"
         },
         {
-            "key": "🔍 Analisador de Partidas",
-            "title": "🔍 Analisador de Partidas",
-            "desc": "Raio-X estatístico individual de confrontos com poder defensivo, ExG e comparador de odds Bet365 vs Betano.",
-            "btn_label": "🔍 Ir para Analisador"
-        },
-        {
-            "key": "📝 Simulador de Bilhetes",
-            "title": "📝 Simulador de Bilhetes",
-            "desc": "Monte e simule bilhetes múltiplos com cálculo automático de retorno, odds combinadas e critérios de segurança.",
-            "btn_label": "📝 Ir para Simulador"
-        },
-        {
-            "key": "🧪 Simulador Virtual (Paper Trading)",
-            "title": "🧪 Simulador Virtual (Paper)",
-            "desc": "Gestão e teste de estratégias em ambiente virtual sem risco real, acompanhando a curva de evolução.",
-            "btn_label": "🧪 Ir para Paper Trading"
-        },
-        {
-            "key": "📈 Projeto de Alavancagem",
-            "title": "📈 Projeto de Alavancagem",
-            "desc": "Calculadora de alavancagem matemática em etapas para dobrar e multiplicar a banca com controle de stake.",
-            "btn_label": "📈 Ir para Alavancagem"
-        },
-        {
-            "key": "🔥 Monitor Mina de Ouro (Ao Vivo)",
-            "title": "🔥 Monitor Mina de Ouro",
-            "desc": "Monitoramento em tempo real dos confrontos ao vivo com alertas táticos e oportunidades in-game.",
-            "btn_label": "🔥 Ir para Ao Vivo"
-        },
-        {
-            "key": "🤖 Consultor IA (Gemini)",
-            "title": "🤖 Consultor IA (Gemini)",
-            "desc": "Auditoria de bilhetes por foto/print e recomendação automática do bilhete ideal reestruturado.",
-            "btn_label": "🤖 Ir para Consultor IA"
+            "key": "📈 Simulador Virtual (Paper Trading)",
+            "title": "📈 Simulador Virtual (Paper)",
+            "desc": "Teste estratégias e acompanhe o ROI da sua banca simulada em tempo real sem arriscar capital financeiro.",
+            "btn_label": "📈 Ir para Paper Trading"
         }
     ]
 
@@ -146,8 +122,8 @@ def render_home_view(is_admin: bool = False):
             "btn_label": "👑 Ir para Admin"
         })
 
-    # Renderiza em Grid de 3 Colunas
-    rows = [modules[i:i+3] for i in range(0, len(modules), 3)]
+    # Renderiza em Grid de 2 Colunas para visual limpo e espaçoso
+    rows = [modules[i:i+2] for i in range(0, len(modules), 2)]
 
     for row in rows:
         cols = st.columns(len(row))

@@ -377,14 +377,10 @@ else:
 
     menu_options = [
         "🏠 Tela Inicial (Dashboard)",
-        "🔮 Previsões",
-        "🌐 Integração Packball",
-        "🔍 Analisador de Partidas", 
-        "📝 Simulador de Bilhetes", 
-        "🧪 Simulador Virtual (Paper Trading)",
-        "📈 Projeto de Alavancagem", 
-        "🔥 Monitor Mina de Ouro (Ao Vivo)",
-        "🤖 Consultor IA (Gemini)"
+        "🌐 Integração Packball VIP",
+        "🔮 Previsões (Ligas Favoritas)",
+        "🎟️ Simulador de Bilhetes", 
+        "📈 Simulador Virtual (Paper Trading)"
     ]
 
     if is_admin:
@@ -401,7 +397,7 @@ else:
     current_idx = menu_options.index(st.session_state["selected_nav"])
 
     app_mode = st.sidebar.radio(
-        "Navegue pelos Painéis:", 
+        "Navegue pelos Painéis (v2):", 
         options=menu_options,
         index=current_idx,
         key="nav_radio_state",
@@ -432,16 +428,6 @@ else:
         else:
             st.caption("Obtenha sua chave em [Google AI Studio](https://aistudio.google.com/).")
 
-    # Configurações API-Football
-    if "api_key" not in st.session_state:
-        st.session_state["api_key"] = "5555576d9dcbeed51c0625dcad03a722"
-
-    with st.sidebar.expander("⚙️ Configurações da API de Futebol"):
-        api_key_input = st.text_input("Chave API-Football (RapidAPI):", value=st.session_state["api_key"], type="password", help="Chave pré-configurada para buscar partidas e dados em tempo real.")
-        if api_key_input:
-            st.session_state["api_key"] = api_key_input
-            st.success("Chave de API ativa!")
-
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 💾 Status dos Dados no Banco")
     
@@ -454,45 +440,27 @@ else:
     data = load_data()
     total_bilhetes = len(data.get('tickets', []))
     total_simulacoes = len(data.get('simulated_tickets', []))
-    total_partidas = len(data.get('matches', []))
-    total_sinais = len(data.get('live_signals', []))
-    step_alav = data.get('leverage_progress', {}).get('current_step', 0)
 
     st.sidebar.text(f"🎫 Bilhetes no Banco: {total_bilhetes}")
-    st.sidebar.text(f"🧪 Simulações Virtuais: {total_simulacoes}")
-    st.sidebar.text(f"⚽ Partidas Salvas: {total_partidas}")
-    st.sidebar.text(f"⚡ Sinais Ao Vivo: {total_sinais}")
-    st.sidebar.text(f"📈 Etapa Atual: {step_alav} / 100")
+    st.sidebar.text(f"📈 Simulações Virtuais: {total_simulacoes}")
 
     # ----------------------------------------------------
-    # ROTEAMENTO DOS DASHBOARDS
+    # ROTEAMENTO DOS DASHBOARDS (VERSÃO 2)
     # ----------------------------------------------------
     if app_mode == "🏠 Tela Inicial (Dashboard)":
         render_home_view(is_admin)
 
-    elif app_mode == "🔮 Previsões":
-        render_predictions()
-
-    elif app_mode == "🌐 Integração Packball":
+    elif app_mode == "🌐 Integração Packball VIP":
         render_packball_integration()
 
-    elif app_mode == "🔍 Analisador de Partidas":
-        render_match_analyzer()
+    elif app_mode == "🔮 Previsões (Ligas Favoritas)":
+        render_predictions()
 
-    elif app_mode == "📝 Simulador de Bilhetes":
+    elif app_mode == "🎟️ Simulador de Bilhetes":
         render_ticket_simulator()
 
-    elif app_mode == "🧪 Simulador Virtual (Paper Trading)":
+    elif app_mode == "📈 Simulador Virtual (Paper Trading)":
         render_paper_trading()
-
-    elif app_mode == "📈 Projeto de Alavancagem":
-        render_leverage_project()
-
-    elif app_mode == "🔥 Monitor Mina de Ouro (Ao Vivo)":
-        render_live_monitor()
-
-    elif app_mode == "🤖 Consultor IA (Gemini)":
-        render_gemini_advisor()
 
     elif app_mode == "👑 Gestão de Usuários (Admin)":
         render_admin_management()

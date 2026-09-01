@@ -99,11 +99,10 @@ def compute_best_market_prediction(match):
         }
 
 def render_predictions():
-    st.title("🔮 Previsões do Dia (Packball VIP & Gemini IA)")
+    st.title("🔮 Previsões Oficiais (+EV) — Minhas Ligas Favoritas")
     st.markdown(
-        "Confira as **partidas e previsões oficiais de valor (+EV)** da sua conta Packball VIP. "
-        "Acompanhe as colunas exatas do site (BEST, % H2H, % Algoritmo, Odd, EV, EV Net), consulte o **Gemini IA** "
-        "e envie qualquer aposta diretamente para o seu **Simulador de Bilhetes**."
+        "Acompanhe as **previsões e probabilidades oficiais de valor (+EV)** filtradas pelas **suas ligas favoritas do Packball VIP**. "
+        "Visualize as métricas oficiais (BEST, % H2H, % Algoritmo, Odd, EV, EV Net) e envie qualquer aposta diretamente para o seu **Simulador de Bilhetes**."
     )
 
     gemini_key = st.session_state.get("gemini_api_key") or get_api_key()
@@ -124,9 +123,22 @@ def render_predictions():
     # Lista de todas as ligas encontradas nas partidas
     all_leagues = sorted(list(dict.fromkeys(m.get("liga", "Geral") for m in clean_matches if m.get("liga"))))
 
-    # Ligas padrão correspondentes ao Minhas Ligas do Packball do usuário
-    PACKBALL_USER_FAVORITES = ["Champions League", "La Liga", "Europa Conference League", "Copa do Brasil"]
-    default_favs = [l for l in all_leagues if l in PACKBALL_USER_FAVORITES]
+    # Ligas de Elite favoritas do usuário no Packball
+    PACKBALL_USER_FAVORITES = [
+        "Premier League", 
+        "La Liga", 
+        "Serie A", 
+        "Bundesliga", 
+        "Ligue 1", 
+        "Champions League", 
+        "Europa League", 
+        "Europa Conference League", 
+        "Copa Libertadores", 
+        "Copa Sul-Americana", 
+        "Brasileirão Série A", 
+        "Copa do Brasil"
+    ]
+    default_favs = [l for l in all_leagues if any(fav.lower() in l.lower() for fav in PACKBALL_USER_FAVORITES)]
     if not default_favs:
         default_favs = all_leagues
 
