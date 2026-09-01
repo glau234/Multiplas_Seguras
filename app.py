@@ -6,12 +6,8 @@ import sys
 sys.path.append(os.path.dirname(__file__))
 
 from utils.storage import ensure_data_file, load_data
-from views.match_analyzer import render_match_analyzer
 from views.ticket_simulator import render_ticket_simulator
-from views.leverage_project import render_leverage_project
-from views.live_monitor import render_live_monitor
 from views.packball_integration import render_packball_integration
-from views.gemini_advisor import render_gemini_advisor
 from views.paper_trading import render_paper_trading
 from views.login_view import render_login_view
 from views.admin_management import render_admin_management
