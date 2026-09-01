@@ -231,26 +231,51 @@ def render_predictions():
             st.session_state["user_favorite_leagues"] = selected_leagues
             st.toast("✅ Suas preferências de ligas foram salvas!", icon="🏆")
 
-    # Filtrar partidas estritamente pelas ligas selecionadas
+    # Filtrar partidas pelo termo de busca com busca inteligente de times e confrontos
     filtered_matches = clean_matches
     if search_term.strip():
+        from utils.gemini_assistant import normalize_team_text, match_team_names, lookup_or_generate_match_packball_stats
         sterm = search_term.strip().lower()
-        filtered_matches = [
-            m for m in filtered_matches
-            if sterm in m.get("time_casa", "").lower() or 
-               sterm in m.get("time_visi", "").lower() or 
-               sterm in m.get("liga", "").lower() or 
-               sterm in m.get("pais", "").lower()
-        ]
-
-    # Filtro estrito por ligas selecionadas no multiselect
-    if selected_leagues:
-        filtered_matches = [m for m in filtered_matches if format_league_label(m) in selected_leagues]
+        
+        # Decompõe termos de confronto (ex: Flamengo x Mirassol)
+        separators = [" x ", " vs ", " vs. ", " - ", " contra "]
+        s_parts = sterm
+        for sep in separators:
+            s_parts = s_parts.replace(sep, " x ")
+        parts = [p.strip() for p in s_parts.split(" x ") if p.strip()]
+        
+        matches_found = []
+        for m in filtered_matches:
+            c = m.get("time_casa", "")
+            v = m.get("time_visi", "")
+            l = m.get("liga", "")
+            p = m.get("pais", "")
+            
+            if len(parts) >= 2:
+                t1, t2 = parts[0], parts[1]
+                if (match_team_names(t1, c) and match_team_names(t2, v)) or (match_team_names(t1, v) and match_team_names(t2, c)):
+                    matches_found.append(m)
+            else:
+                if match_team_names(sterm, c) or match_team_names(sterm, v) or sterm in l.lower() or sterm in p.lower() or sterm in c.lower() or sterm in v.lower():
+                    matches_found.append(m)
+                    
+        # Se não encontrou no cache local, gera dinamicamente a previsão oficial do confronto
+        if not matches_found and len(sterm) >= 3:
+            with st.spinner(f"Compilando previsões oficiais para '{search_term}'..."):
+                gen_match = lookup_or_generate_match_packball_stats(search_term, gemini_key, clean_matches)
+                if gen_match:
+                    matches_found = [gen_match]
+                    
+        filtered_matches = matches_found
     else:
-        filtered_matches = []
+        # Filtro estrito por ligas selecionadas no multiselect quando não há busca individual
+        if selected_leagues:
+            filtered_matches = [m for m in filtered_matches if format_league_label(m) in selected_leagues]
+        else:
+            filtered_matches = []
 
-    if filter_date != "Todas as Datas":
-        filtered_matches = [m for m in filtered_matches if str(m.get("data", "")).strip() == filter_date]
+        if filter_date != "Todas as Datas":
+            filtered_matches = [m for m in filtered_matches if str(m.get("data", "")).strip() == filter_date]
 
     st.markdown("---")
 
