@@ -130,6 +130,8 @@ def render_predictions():
     USER_FAVORITE_SPECS = [
         ("ARG", "Liga Profesional"),
         ("BRA", "Serie A"),
+        ("BRA", "Brasileirão"),
+        ("BRA", "Copa do Brasil"),
         ("ENG", "Premier League"),
         ("ESP", "La Liga"),
         ("FRA", "Ligue 1"),
@@ -146,7 +148,7 @@ def render_predictions():
         if "serie b" in l_low or "série b" in l_low:
             return False
         for fav_p, fav_l in USER_FAVORITE_SPECS:
-            if p_up == fav_p.upper():
+            if p_up == fav_p.upper() or fav_p.upper() in p_up:
                 if fav_l.lower() in l_low:
                     if fav_l == "La Liga" and ("la liga 2" in l_low or "segunda" in l_low):
                         continue
@@ -163,6 +165,11 @@ def render_predictions():
     
     if not default_favs_labels:
         default_favs_labels = all_leagues_labels
+
+    # Força a atualização da lista de favoritos da nova versão no navegador
+    if st.session_state.get("user_fav_leagues_ver") != "v2_bra_serie_a_fixed":
+        st.session_state["user_favorite_leagues"] = default_favs_labels
+        st.session_state["user_fav_leagues_ver"] = "v2_bra_serie_a_fixed"
 
     if "user_favorite_leagues" not in st.session_state or not st.session_state["user_favorite_leagues"]:
         st.session_state["user_favorite_leagues"] = default_favs_labels
