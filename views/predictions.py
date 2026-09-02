@@ -107,18 +107,10 @@ def render_predictions():
 
     gemini_key = st.session_state.get("gemini_api_key") or get_api_key()
 
-    # Sempre recarrega do arquivo de cache para garantir sincronia com os jogos exatos
-    import os, json
-    if os.path.exists("data/cached_packball.json"):
-        try:
-            with open("data/cached_packball.json", "r", encoding="utf-8") as f:
-                cached_raw = json.load(f)
-                st.session_state["packball_matches"] = filter_out_past_matches(filter_out_serie_b(cached_raw))
-        except Exception:
-            pass
-
-    stored_matches = st.session_state.get("packball_matches", [])
-    clean_matches = filter_out_past_matches(filter_out_serie_b(stored_matches))
+    # Carrega as partidas do Packball com resiliência garantida
+    from utils.packball_scraper import ensure_packball_cache_ready
+    clean_matches = ensure_packball_cache_ready()
+    st.session_state["packball_matches"] = clean_matches
 
     # Identificador único de cada liga combinando País e Nome da Liga
     def format_league_label(m):

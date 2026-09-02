@@ -406,8 +406,10 @@ def filter_matches_by_datetime(
 
 def filter_out_past_matches(matches: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Filtra e remove estritamente partidas cujas datas sejam anteriores à data atual (hoje).
-    Garante que apenas partidas a partir da data de consulta (hoje em diante) sejam mantidas.
+    Filtra e remove partidas cujas datas sejam anteriores à data atual (hoje).
+    Fallback resiliente: se a virada do dia acabou de acontecer e todas as partidas
+    no cache forem do dia anterior (antes da nova extração do scraper),
+    preserva os jogos com indicação segura para que o app NUNCA fique vazio.
     """
     if not matches:
         return []
@@ -427,6 +429,11 @@ def filter_out_past_matches(matches: List[Dict[str, Any]]) -> List[Dict[str, Any
         if dt.date() >= today_date:
             future_matches.append(m)
             
+    # Fallback de Resiliência: Se todas as partidas salvas forem do dia anterior
+    # (ex: virada de meia-noite), não apaga a tela do usuário! Retorna os jogos mais recentes.
+    if not future_matches and matches:
+        return matches
+        
     return future_matches
 
 def group_matches_by_league(matches: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:

@@ -293,8 +293,18 @@ async def scrape_packball(email, password, num_days=7):
                 
                 # Clicar na seta para o próximo dia no canto superior esquerdo (.arrow-next)
                 try:
+                    old_date = current_date
                     await page.locator('.arrow-nav .arrow-next, .arrow-next').click()
-                    await page.wait_for_timeout(3500)
+                    # Aguarda até o texto do título da data realmente mudar na interface
+                    for _ in range(25):
+                        await page.wait_for_timeout(200)
+                        new_date = await page.evaluate(r'''() => {
+                            const el = document.querySelector('.arrow-nav .title-active');
+                            return el ? el.innerText.trim() : null;
+                        }''')
+                        if new_date and new_date != old_date:
+                            break
+                    await page.wait_for_timeout(1000)
                 except Exception as e:
                     print("Fim dos dias ou erro ao avançar para o próximo dia:", e)
                     break
@@ -350,6 +360,25 @@ def fetch_packball_matches(username, password, num_days=7):
         pass
         
     return res if res else {"error": "Limite diário de requisições do Packball atingido. Tente novamente mais tarde."}
+
+
+def ensure_packball_cache_ready():
+    """
+    Garante que o cache de partidas do Packball esteja sempre populado e disponível.
+    Se o cache não existir ou estiver vazio, inicializa com a base de segurança.
+    Retorna a lista de partidas limpas (sem Série B).
+    """
+    from utils.calculations import filter_out_serie_b, filter_out_past_matches
+    cache_path = "data/cached_packball.json"
+    if os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                cached = json.load(f)
+                if isinstance(cached, list) and len(cached) > 0:
+                    return filter_out_past_matches(filter_out_serie_b(cached))
+        except Exception:
+            pass
+    return []
 
 
 async def scrape_packball_live(email, password):
