@@ -131,6 +131,7 @@ def render_predictions():
     # 10. POR - Liga Portugal
     OFFICIAL_USER_FAVORITE_LABELS = [
         "[BRA] Serie A",
+        "[BRA] Copa do Brasil",
         "[ENG] Premier League",
         "[ESP] La Liga",
         "[ITA] Serie A",
@@ -182,9 +183,9 @@ def render_predictions():
     default_favs_labels = [l for l in OFFICIAL_USER_FAVORITE_LABELS if l in all_leagues_labels]
     
     # Força a atualização da lista de favoritos no navegador do usuário
-    if st.session_state.get("user_fav_leagues_ver") != "v4_bra_serie_a_permanent":
+    if st.session_state.get("user_fav_leagues_ver") != "v5_clean_dedup_favorites":
         st.session_state["user_favorite_leagues"] = default_favs_labels
-        st.session_state["user_fav_leagues_ver"] = "v4_bra_serie_a_permanent"
+        st.session_state["user_fav_leagues_ver"] = "v5_clean_dedup_favorites"
 
     if "user_favorite_leagues" not in st.session_state or not st.session_state["user_favorite_leagues"]:
         st.session_state["user_favorite_leagues"] = default_favs_labels

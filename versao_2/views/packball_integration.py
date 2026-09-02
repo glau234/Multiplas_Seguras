@@ -226,9 +226,9 @@ def render_packball_integration():
 
                     apenas_minhas_ligas = st.checkbox(
                         "⭐ **Filtrar apenas partidas das Minhas Ligas Favoritas** (BRA Serie A, Premier League, La Liga, Serie A ITA, Bundesliga, Eredivisie, Liga Portugal, etc.)",
-                        value=st.session_state.get("pk_only_fav_leagues_active", False),
+                        value=st.session_state.get("pk_only_fav_leagues_active", True),
                         key="pk_check_only_fav_leagues",
-                        help="Quando ativado, exibe apenas partidas das 10 ligas favoritas oficiais configuradas em Previsões."
+                        help="Quando ativado, exibe apenas partidas das ligas favoritas oficiais configuradas em Previsões."
                     )
 
                     apenas_qualificados = st.checkbox(

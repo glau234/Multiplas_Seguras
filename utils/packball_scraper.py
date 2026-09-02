@@ -266,7 +266,8 @@ async def scrape_packball(email, password, num_days=7):
                     if is_brazil_serie_b(pais=m.get('pais', ''), liga=m.get('liga', ''), time_casa=m.get('time_casa', ''), time_visi=m.get('time_visi', '')):
                         continue
                         
-                    match_key = f"{current_date}_{m['time_casa']}_{m['time_visi']}"
+                    # Garante que cada partida seja estritamente única em toda a extração
+                    match_key = f"{str(m['time_casa']).strip().lower()}_vs_{str(m['time_visi']).strip().lower()}"
                     if match_key not in seen_match_keys:
                         seen_match_keys.add(match_key)
                         matches.append({
