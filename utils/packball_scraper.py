@@ -194,8 +194,10 @@ async def scrape_packball(email, password, num_days=7):
                                                html.includes('leve favoritismo') || 
                                                row.querySelector('li.col.custom.b3.tt i.default') !== null;
                         
-                        // Colunas VIP do Packball
+                        // Colunas VIP do Packball extraídas de forma semântica e reversa (à prova de falhas)
                         const customCols = Array.from(row.querySelectorAll('li.col.custom'));
+                        const nCols = customCols.length;
+                        
                         let win_prob = '';
                         let ppg = '';
                         let gols_avg = '';
@@ -205,22 +207,35 @@ async def scrape_packball(email, password, num_days=7):
                         let escanteios_avg = '';
                         let escanteios_exc = '';
                         
-                        if (customCols.length >= 4) win_prob = customCols[3].innerText.replace(/\n/g, ' ').trim();
-                        if (customCols.length >= 6) ppg = customCols[5].innerText.replace(/\n/g, ' ').trim();
-                        if (customCols.length >= 7) gols_avg = customCols[6].innerText.trim();
-                        if (customCols.length >= 8) {
-                            const parsedExg = parseFloat(customCols[7].innerText.trim());
+                        if (nCols >= 6) {
+                            // As últimas 6 colunas são rigorosamente padronizadas pelo Packball VIP:
+                            escanteios_exc = customCols[nCols - 1].innerText.trim();
+                            escanteios_avg = customCols[nCols - 2].innerText.trim();
+                            bts = customCols[nCols - 3].innerText.trim();
+                            over25 = customCols[nCols - 4].innerText.trim();
+                            
+                            const parsedExg = parseFloat(customCols[nCols - 5].innerText.trim());
                             if (!isNaN(parsedExg)) {
                                 exg = parsedExg;
-                            } else {
+                            }
+                            
+                            gols_avg = customCols[nCols - 6].innerText.trim();
+                            if (isNaN(exg)) {
                                 const parsedAvg = parseFloat(gols_avg);
                                 if (!isNaN(parsedAvg)) exg = parsedAvg;
                             }
                         }
-                        if (customCols.length >= 9) over25 = customCols[8].innerText.trim();
-                        if (customCols.length >= 10) bts = customCols[9].innerText.trim();
-                        if (customCols.length >= 11) escanteios_avg = customCols[10].innerText.trim();
-                        if (customCols.length >= 12) escanteios_exc = customCols[11].innerText.trim();
+                        
+                        // Busca colunas Home/Away para Win Prob e PPG
+                        const haCols = Array.from(row.querySelectorAll('li.col.custom.ha, li.col.ha'));
+                        for (const ha of haCols) {
+                            const txt = ha.innerText.replace(/\n/g, ' ').trim();
+                            if (txt.includes('%') && !win_prob) {
+                                win_prob = txt;
+                            } else if (txt.includes('.') && !ppg && !txt.includes('%') && !txt.includes('º') && !txt.includes('°')) {
+                                ppg = txt;
+                            }
+                        }
                         
                         // Adiciona todas as partidas da lista do Packball
                         results.push({
