@@ -406,10 +406,8 @@ def filter_matches_by_datetime(
 
 def filter_out_past_matches(matches: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
-    Filtra e remove partidas cujas datas sejam anteriores à data atual (hoje).
-    Fallback resiliente: se a virada do dia acabou de acontecer e todas as partidas
-    no cache forem do dia anterior (antes da nova extração do scraper),
-    preserva os jogos com indicação segura para que o app NUNCA fique vazio.
+    Filtra e remove definitivamente qualquer partida cuja data seja anterior à data atual (hoje).
+    Garante que sob nenhuma circunstância datas do passado sejam retornadas ao usuário.
     """
     if not matches:
         return []
@@ -419,21 +417,24 @@ def filter_out_past_matches(matches: List[Dict[str, Any]]) -> List[Dict[str, Any
     
     future_matches = []
     for m in matches:
+        if not isinstance(m, dict):
+            continue
+            
         data_str = str(m.get("data", "")).strip()
         # Se for partida explicitamente ao vivo
         if "ao vivo" in data_str.lower() or "live" in data_str.lower():
-            future_matches.append(m)
+            m_live = dict(m)
+            if not m_live.get("data") or "ao vivo" in str(m_live.get("data")).lower():
+                m_live["data"] = today_dt.strftime("%d/%m") + " Hoje (Ao Vivo)"
+            future_matches.append(m_live)
             continue
             
         dt = parse_match_datetime(data_str, m.get("horario", ""))
+        # Validação estrita: somente partidas de HOJE em diante
         if dt.date() >= today_date:
             future_matches.append(m)
             
-    # Fallback de Resiliência: Se todas as partidas salvas forem do dia anterior
-    # (ex: virada de meia-noite), não apaga a tela do usuário! Retorna os jogos mais recentes.
-    if not future_matches and matches:
-        return matches
-        
+    # Retorna estritamente as partidas de hoje em diante (datas passadas são expurgadas)
     return future_matches
 
 def group_matches_by_league(matches: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:

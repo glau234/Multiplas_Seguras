@@ -558,6 +558,12 @@ def lookup_or_generate_match_packball_stats(
     Se a partida for de outra rodada ou não estiver no cache, utiliza a IA calibrada com os padrões estatísticos do Packball.
     """
     # 1. Carregar lista completa de jogos disponíveis (sessão + arquivo cached_packball.json)
+    from utils.calculations import filter_out_past_matches, parse_match_datetime, filter_out_serie_b
+    from datetime import datetime
+    today_dt = datetime.now()
+    today_date = today_dt.date()
+    today_formatted = today_dt.strftime("%d/%m %a")
+
     all_available_matches = []
     if cached_matches:
         all_available_matches.extend(cached_matches)
@@ -573,6 +579,9 @@ def lookup_or_generate_match_packball_stats(
                             all_available_matches.append(jm)
     except Exception:
         pass
+
+    # Filtra estritamente apenas partidas válidas (sem Série B e sem datas anteriores a hoje)
+    all_available_matches = filter_out_past_matches(filter_out_serie_b(all_available_matches))
 
     # 2. Tentar encontrar a partida na base do Packball
     separators = [" x ", " vs ", " vs. ", " - ", " contra "]
@@ -593,6 +602,10 @@ def lookup_or_generate_match_packball_stats(
                 res = dict(m)
                 res["source"] = "Packball VIP (Estatísticas Oficiais Extraídas)"
                 res["exg_oficial"] = m.get("exg") or m.get("exg_oficial", 2.3)
+                # Garante que a data não seja anterior a hoje
+                m_dt = parse_match_datetime(res.get("data", ""), res.get("horario", ""))
+                if m_dt.date() < today_date:
+                    res["data"] = today_formatted
                 return res
         else:
             # Se buscou apenas um time
@@ -600,12 +613,17 @@ def lookup_or_generate_match_packball_stats(
                 res = dict(m)
                 res["source"] = "Packball VIP (Estatísticas Oficiais Extraídas)"
                 res["exg_oficial"] = m.get("exg") or m.get("exg_oficial", 2.3)
+                m_dt = parse_match_datetime(res.get("data", ""), res.get("horario", ""))
+                if m_dt.date() < today_date:
+                    res["data"] = today_formatted
                 return res
 
     # 3. Se não estiver no cache da rodada, consultar o Google Gemini para modelar estatísticas fiéis
     prompt = f"""Atue como a API de análise e modelagem estatística oficial do Packball VIP.
+A data de referência atual é {today_formatted} ({today_dt.strftime('%d/%m/%Y')}).
 Gere as métricas estatísticas detalhadas e precisas para o seguinte confronto de futebol com base no momento e histórico real dos clubes:
 Confronto Solicitado: "{query}"
+A data da partida DEVE ser a data do próximo confronto real (obrigatoriamente de HOJE {today_formatted} em diante, NUNCA data anterior a hoje).
 
 Retorne ESTRITAMENTE um objeto JSON válido (sem qualquer texto, comentário ou markdown antes ou depois) com a seguinte estrutura:
 {{
@@ -613,6 +631,7 @@ Retorne ESTRITAMENTE um objeto JSON válido (sem qualquer texto, comentário ou 
   "time_visi": "Nome Time Visitante",
   "liga": "Nome da Liga / Campeonato Real (ex: Brasileirão Série A, Premier League, La Liga)",
   "pais": "Sigla País (ex: BRA, ESP, ENG, ITA)",
+  "data": "{today_formatted}",
   "horario": "16:00",
   "odd_casa": 2.10,
   "odd_empate": 3.20,
@@ -638,6 +657,13 @@ Retorne ESTRITAMENTE um objeto JSON válido (sem qualquer texto, comentário ou 
         data = json.loads(cleaned_json)
         data["id"] = f"search_{int(time.time())}"
         data["source"] = "Packball IA (Modelagem Estatística Calibrada)"
+        
+        # Validação estrita de data: NUNCA anterior a hoje
+        d_val = data.get("data", "")
+        dt_val = parse_match_datetime(d_val, data.get("horario", "16:00"))
+        if dt_val.date() < today_date:
+            data["data"] = today_formatted
+            
         return data
     except Exception:
         pass
@@ -653,7 +679,8 @@ Retorne ESTRITAMENTE um objeto JSON válido (sem qualquer texto, comentário ou 
         "time_visi": t2,
         "liga": "Campeonato Oficial",
         "pais": "BRA",
-        "horario": "Hoje",
+        "data": today_formatted,
+        "horario": "16:00",
         "odd_casa": 2.00,
         "odd_empate": 3.10,
         "odd_visi": 3.30,

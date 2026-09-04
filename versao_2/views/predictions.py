@@ -198,15 +198,21 @@ def render_predictions():
             "🏆 Minhas Ligas (Filtro Ativo):",
             options=all_leagues_labels,
             default=[l for l in st.session_state["user_favorite_leagues"] if l in all_leagues_labels],
-            help="Exibe apenas partidas das ligas selecionadas (padrão: suas 10 ligas favoritas do Packball)."
+            help="Exibe apenas partidas das ligas selecionadas (padrão: suas 10 ligas favoritas do Packball VIP)."
         )
     with col_f3:
         available_dates = sorted(list(dict.fromkeys(str(m.get("data", "")).strip() for m in clean_matches if m.get("data"))))
         if "Todas as Datas" not in available_dates:
             available_dates = ["Todas as Datas"] + available_dates
+            
+        if "pred_filter_date" in st.session_state and st.session_state["pred_filter_date"] not in available_dates:
+            st.session_state["pred_filter_date"] = "Todas as Datas"
+            
         filter_date = st.selectbox(
             "📅 Data:",
-            options=available_dates
+            options=available_dates,
+            index=available_dates.index(st.session_state.get("pred_filter_date", "Todas as Datas")) if st.session_state.get("pred_filter_date") in available_dates else 0,
+            key="pred_filter_date"
         )
 
     # Botões rápidos para alternar ligas
@@ -273,7 +279,7 @@ def render_predictions():
     st.markdown("---")
 
     if not filtered_matches:
-        st.info("💡 Nenhum jogo encontrado para os filtros selecionados. Altere a busca ou clique em '🌐 Selecionar Todas as Ligas'.")
+        st.warning(f"⚠️ Nenhuma previsão encontrada para os filtros selecionados. Experimente selecionar mais ligas ou clicar em '🌐 Todas as Ligas'.")
     else:
         # Seletor de Modo de Exibição
         view_mode = st.radio(
@@ -294,6 +300,7 @@ def render_predictions():
                 
                 table_rows.append({
                     "ID": match.get("id", idx),
+                    "Data": match.get("data", "Hoje"),
                     "País/Liga": f"{match.get('pais', '')} {match.get('liga', '')}".strip(),
                     "Hora": match.get("horario", "16:00"),
                     "Confronto": f"{match['time_casa']} vs {match['time_visi']}",

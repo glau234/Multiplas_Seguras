@@ -28,6 +28,21 @@ st.set_page_config(
 ensure_data_file()
 
 # ----------------------------------------------------
+# SANITIZAÇÃO GLOBAL CONTÍNUA: PURGE DEFINITIVO DE DATAS PASSADAS
+# ----------------------------------------------------
+from utils.calculations import filter_out_past_matches, filter_out_serie_b
+from utils.packball_scraper import ensure_packball_cache_ready
+
+if "packball_matches" in st.session_state and st.session_state["packball_matches"]:
+    st.session_state["packball_matches"] = filter_out_past_matches(filter_out_serie_b(st.session_state["packball_matches"]))
+
+if "packball_matches" not in st.session_state or not st.session_state["packball_matches"]:
+    st.session_state["packball_matches"] = ensure_packball_cache_ready()
+
+if "packball_approved_matches" in st.session_state and st.session_state["packball_approved_matches"]:
+    st.session_state["packball_approved_matches"] = filter_out_past_matches(st.session_state["packball_approved_matches"])
+
+# ----------------------------------------------------
 # ESTILIZAÇÃO CUSTOMIZADA (CLEAN MODERN LIGHT AESTHETIC)
 # ----------------------------------------------------
 st.markdown("""

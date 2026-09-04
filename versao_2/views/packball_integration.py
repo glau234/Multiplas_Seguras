@@ -22,16 +22,19 @@ from utils.gemini_assistant import (
 from utils.odds_comparator import render_bookmaker_comparison_card
 
 def render_packball_integration():
-    # Auto-carregamento do cache caso ainda não exista na sessão (filtrando jogos passados)
-    if "packball_matches" not in st.session_state:
+    # Auto-carregamento do cache e sanitização contínua de partidas passadas
+    if "packball_matches" not in st.session_state or not st.session_state["packball_matches"]:
         if os.path.exists("data/cached_packball.json"):
             try:
                 with open("data/cached_packball.json", "r", encoding="utf-8") as f:
                     cached = json.load(f)
                     if cached and len(cached) > 0:
-                        st.session_state["packball_matches"] = filter_out_past_matches(cached)
+                        st.session_state["packball_matches"] = filter_out_past_matches(filter_out_serie_b(cached))
             except Exception:
                 pass
+    else:
+        # Garante que mesmo em sessões em memória partidas passadas sejam limpas imediatamente
+        st.session_state["packball_matches"] = filter_out_past_matches(filter_out_serie_b(st.session_state["packball_matches"]))
 
     # Se houver um jogo selecionado para visualização completa em página dedicada
     selected_match = st.session_state.get("selected_packball_match", None)
@@ -197,13 +200,16 @@ def render_packball_integration():
                         st.session_state["pk_only_fav_leagues_active"] = False
                         st.rerun()
 
+                if "p_filter_date" in st.session_state and st.session_state["p_filter_date"] not in available_dates:
+                    st.session_state["p_filter_date"] = "Todas as Datas"
+
                 with st.expander("📅 ⏰ **Filtros por Data, Horário & Critérios Estatísticos**", expanded=True):
                     f_col1, f_col2, f_col3 = st.columns([1.5, 2, 1.2])
                     with f_col1:
                         filtro_data_selecionada = st.selectbox(
                             "📅 Filtrar por Data:",
                             options=available_dates,
-                            index=0,
+                            index=available_dates.index(st.session_state.get("p_filter_date", "Todas as Datas")) if st.session_state.get("p_filter_date") in available_dates else 0,
                             key="p_filter_date"
                         )
                     with f_col2:
@@ -472,11 +478,12 @@ def render_match_query_module():
         liga = queried_match.get("liga", "Liga")
         pais = queried_match.get("pais", "")
         horario = queried_match.get("horario", "16:00")
+        data_str = queried_match.get("data", "Hoje")
         source = queried_match.get("source", "Packball VIP")
         
         flag = get_country_flag(pais)
         st.markdown(f"## {flag} {t_casa} vs {t_visi}")
-        st.caption(f"🏆 **Liga:** {liga} ({pais}) &nbsp;|&nbsp; ⏰ **Horário:** {horario} &nbsp;|&nbsp; 📡 **Origem dos Dados:** {source}")
+        st.caption(f"🏆 **Liga:** {liga} ({pais}) &nbsp;|&nbsp; 📅 **Data:** {data_str} &nbsp;|&nbsp; ⏰ **Horário:** {horario} &nbsp;|&nbsp; 📡 **Origem dos Dados:** {source}")
 
         # Bloco 1: Cotações 1X2 e Mercado Sugerido
         odd_c = float(queried_match.get("odd_casa", 2.0))

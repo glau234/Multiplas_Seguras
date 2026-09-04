@@ -261,9 +261,14 @@ async def scrape_packball(email, password, num_days=7):
                 }''')
                 
                 for m in day_matches:
-                    # Critério obrigatório: Não trazer nenhuma partida da Série B do Campeonato Brasileiro
-                    from utils.calculations import is_brazil_serie_b
+                    # Critério obrigatório 1: Não trazer nenhuma partida da Série B do Campeonato Brasileiro
+                    from utils.calculations import is_brazil_serie_b, parse_match_datetime
                     if is_brazil_serie_b(pais=m.get('pais', ''), liga=m.get('liga', ''), time_casa=m.get('time_casa', ''), time_visi=m.get('time_visi', '')):
+                        continue
+
+                    # Critério obrigatório 2: Data rigorosamente igual ou superior a hoje (bloqueia datas passadas)
+                    m_dt = parse_match_datetime(current_date, m.get('horario', ''))
+                    if m_dt.date() < today_date:
                         continue
                         
                     # Garante que cada partida seja estritamente única em toda a extração
@@ -284,6 +289,7 @@ async def scrape_packball(email, password, num_days=7):
                             "ppg": m['ppg'],
                             "gols_avg": m['gols_avg'],
                             "exg": m['exg'],
+                            "exg_oficial": m['exg'],
                             "over25": m['over25'],
                             "bts": m['bts'],
                             "escanteios_avg": m['escanteios_avg'],
@@ -316,6 +322,9 @@ async def scrape_packball(email, password, num_days=7):
         finally:
             await browser.close()
             
+    from utils.calculations import filter_out_serie_b, filter_out_past_matches
+    if isinstance(matches, list):
+        matches = filter_out_past_matches(filter_out_serie_b(matches))
     return matches
 
 import concurrent.futures
@@ -339,8 +348,7 @@ def fetch_packball_matches(username, password, num_days=7):
         
     if isinstance(res, list) and len(res) > 0:
         from utils.calculations import filter_out_serie_b, filter_out_past_matches
-        res = filter_out_serie_b(res)
-        res = filter_out_past_matches(res)
+        res = filter_out_past_matches(filter_out_serie_b(res))
         try:
             os.makedirs("data", exist_ok=True)
             with open("data/cached_packball.json", "w", encoding="utf-8") as f:
@@ -349,14 +357,16 @@ def fetch_packball_matches(username, password, num_days=7):
             pass
         return res
         
-    # Fallback para o cache recente
+    # Fallback para o cache recente (estritamente filtrado para datas >= hoje)
     try:
         if os.path.exists("data/cached_packball.json"):
             with open("data/cached_packball.json", "r", encoding="utf-8") as f:
                 cached = json.load(f)
                 if cached and len(cached) > 0:
                     from utils.calculations import filter_out_serie_b, filter_out_past_matches
-                    return filter_out_past_matches(filter_out_serie_b(cached))
+                    valid_cached = filter_out_past_matches(filter_out_serie_b(cached))
+                    if valid_cached:
+                        return valid_cached
     except Exception:
         pass
         
@@ -365,9 +375,8 @@ def fetch_packball_matches(username, password, num_days=7):
 
 def ensure_packball_cache_ready():
     """
-    Garante que o cache de partidas do Packball esteja sempre populado e disponível.
-    Se o cache não existir ou estiver vazio, inicializa com a base de segurança.
-    Retorna a lista de partidas limpas (sem Série B).
+    Garante que o cache de partidas do Packball esteja sempre populado e disponível com partidas válidas (hoje em diante).
+    Retorna a lista de partidas limpas (sem Série B e sem partidas passadas).
     """
     from utils.calculations import filter_out_serie_b, filter_out_past_matches
     cache_path = "data/cached_packball.json"
@@ -376,7 +385,9 @@ def ensure_packball_cache_ready():
             with open(cache_path, "r", encoding="utf-8") as f:
                 cached = json.load(f)
                 if isinstance(cached, list) and len(cached) > 0:
-                    return filter_out_past_matches(filter_out_serie_b(cached))
+                    valid = filter_out_past_matches(filter_out_serie_b(cached))
+                    if valid:
+                        return valid
         except Exception:
             pass
     return []
